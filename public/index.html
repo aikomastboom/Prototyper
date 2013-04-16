@@ -9,6 +9,13 @@
 <div id="header">
     <div id="htext">
         Editing <b>index</b>
+        <div id="main">
+            <ul class="folders" data-bind="foreach: _keys()">
+                <li data-bind="text: $data,
+                    css: { selected: $data == $root._chosenFolderId() },
+                    click: $root._goToFolder"></li>
+            </ul>
+        </div>
     </div>
 </div>
 
@@ -16,13 +23,16 @@
 
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>
+<script src="//underscorejs.org/underscore-min.js"></script>
+<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js"></script>
+<!--<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js"></script>-->
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
 <script src="lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="lib/ace/mode-html.js" type="text/javascript" charset="utf-8"></script>
-<!--<script src="lib/ace/mode-javascript.js" type="text/javascript" charset="utf-8"></script>-->
-<!--<script src="lib/ace/mode-css.js" type="text/javascript" charset="utf-8"></script>-->
-<!--<script src="lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>-->
+<script src="lib/ace/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
+<script src="lib/ace/mode-css.js" type="text/javascript" charset="utf-8"></script>
+<script src="lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="//cdn.sockjs.org/sockjs-0.3.min.js"></script>
 <!--<script src="/channel/bcsocket.js"></script>-->
 <!--<script src="/socket.io/socket.io.js"></script>-->
@@ -33,9 +43,47 @@
 <script>
     var attribute = 'index';
     var editor = ace.edit("editor");
-    var aceMode = require("ace/mode/html").Mode;
+    var aceMode = null;
     var session = editor.getSession();
-    session.setMode(new aceMode());
+    var viewModel = null;
+    var doc = null;
+    var mainDoc = null;
+    editor.setReadOnly(true);
+
+    var setDoc = function(attribute) {
+        var mode = 'markdown';
+        editor.setReadOnly(true);
+        if (attribute == 'style') {
+            mode = 'css';
+        } else if (attribute == 'behaviour') {
+            mode = 'javascript';
+        } else if (attribute == 'index') {
+            mode = 'html';
+        }
+        aceMode = require("ace/mode/"+mode).Mode;
+        session.setMode(new aceMode());
+        document.title = attribute;
+
+        //var docName='text:app:'+mainDoc.snapshot._id+':'+attribute;
+        var docName='text:app:'+viewModel._id()+':'+attribute;
+
+        sharejs.open(docName, 'text', function(error, newDoc) {
+
+            if (doc != null) {
+                doc.close();
+                doc.detach_ace();
+            }
+
+            doc = newDoc;
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+            doc.attach_ace(editor);
+            editor.setReadOnly(false);
+        });
+    };
 
     sharejs.open('json:app:main','json', function (error, main) {
         var indexField = null;
@@ -43,34 +91,29 @@
             console.log('error opening app:main:json', error, main);
         } else {
             console.log('yes!!',main);
+            mainDoc = main;
             if (main.snapshot == null) {
                 main.submitOp([
                     { p: [], oi: {name:'main'}, od: null }
                 ]);
-            }
-            function openIndex() {
-                if (main.snapshot._id && !indexField){
-                    indexField = 'busy';
-                    console.log('main.snapshot._id',main.snapshot._id);
-                    sharejs.open('text:app:'+main.snapshot._id+':'+attribute, 'text', function(error, index) {
-                        if (error) {
-                            console.log('error opening text:app:'+main.snapshot._id+':'+attribute, error, index);
-                            indexField=null;
-                        } else {
-                            console.log('yes index!!',index);
-                            indexField=index;
-                            index.attach_ace(editor);
-                        }
-                    });
+            } else {
+                var viewModel = ko.mapping.fromJS(main.snapshot);
+                viewModel._keys = function() {
+                    return _.filter(Object.keys(this), function(key){ return key[0] != '_' && key != 'name' && key != 'version'; });
+                };
+                viewModel._chosenFolderId = ko.observable();
+                // Behaviours
+                viewModel._goToFolder = function(folder) {
+                    viewModel._chosenFolderId(folder);
+                    setDoc(folder);
                 }
+
+                ko.applyBindings(viewModel);
+                window.viewModel=viewModel;
             }
-            openIndex();
-            main.on('change', function (op) {
-                console.log('main:change',op,main.snapshot);
-                openIndex();
+            main.on('change', function () {
+               ko.mapping.fromJS(main.snapshot,viewModel);
             });
-
-
         }
     })
 </script>
