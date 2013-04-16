@@ -1,0 +1,9 @@
+.hg
+.idea
+*.iml
+.DS_Store
+*.orig
+*.swp
+fleet.json
+*.log
+thing

@@ -1,0 +1,29 @@
+{
+  "name": "Prototyper",
+  "version": "0.0.0",
+  "main": "index.js",
+  "private": "true",
+  "dependencies": {
+    "share": "~0.6.0",
+    "connect": "~2.7.5",
+	"express": "~2.5.11",
+    "mongodb": "~1.2.14",
+    "handlebars": "~1.0.10",
+    "underscore": "~1.4.4",
+    "less": "~1.3.3"
+  },
+  "devDependencies": {
+    "sockjs": "~0.3.5"
+  },
+  "repository": "",
+  "author": "Aiko Mastboom",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "directories": {
+    "test": "test"
+  },
+  "description": "README.md",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
