@@ -8,12 +8,12 @@ module.exports = function (config) {
 		config.debug && console.log('getMongoContent options', options);
 		MongoClient.connect(config.mongo.server, config.mongo.options, function (err, db) {
 			if (err) {
-				config.debug && console.log('ERR1 getMongoContent',err);
+				config.debug && console.log('ERR1 getMongoContent', err);
 				return callback(err);
 			}
 			db.collection(options.collection, function (err, col) {
 				if (err) {
-					config.debug && console.log('ERR2 getMongoContent',err);
+					config.debug && console.log('ERR2 getMongoContent', err);
 					return callback(err);
 				}
 				if (options.query._id && !(options.query._id instanceof Object)) {
@@ -21,7 +21,7 @@ module.exports = function (config) {
 				}
 				col.findOne(options.query, function (err, result) {
 					if (err) {
-						config.debug && console.log('ERR3 getMongoContent',err);
+						config.debug && console.log('ERR3 getMongoContent', err);
 						return callback(err);
 					}
 					if (!result) {
@@ -37,11 +37,11 @@ module.exports = function (config) {
 		config.debug && console.log('getMongoAttribute options', options);
 		return getMongoContent(options, function (err, result) {
 			if (err) {
-				config.errors && console.log('ERR1 getMongoAttribute',err);
+				config.errors && console.log('ERR1 getMongoAttribute', err);
 				return callback(err);
 			}
 			var attribute_options = null;
-				config.debug && console.log('getMongoAttribute result', result);
+			config.debug && console.log('getMongoAttribute result', result);
 			if (result && result.hasOwnProperty(options.attribute)) {
 				attribute_options = {
 					collection: options.collection,
@@ -51,7 +51,7 @@ module.exports = function (config) {
 
 				return getMongoContent(attribute_options, function (err, attribute_result) {
 					if (err) {
-						config.errors && console.log('ERR2 getMongoAttribute',err);
+						config.errors && console.log('ERR2 getMongoAttribute', err);
 						return callback(err);
 					}
 					config.debug && console.log('getMongoAttribute attribute_result', attribute_result);
@@ -63,14 +63,14 @@ module.exports = function (config) {
 					collection: options.collection,
 					query: {
 						parent: result._id,
-						name: result.name+'.'+options.attribute
+						name: result.name + '.' + options.attribute
 					}
 				};
 				config.debug && console.log('getMongoAttribute attribute_options', attribute_options);
 
 				return getMongoContent(attribute_options, function (err, attribute_result) {
 					if (err) {
-						config.errors && console.log('ERR3 getMongoAttribute',err);
+						config.errors && console.log('ERR3 getMongoAttribute', err);
 						return callback(err);
 					}
 					if (attribute_result) {
@@ -95,34 +95,35 @@ module.exports = function (config) {
 			}
 		})
 	}
+
 	function saveData(collection, data, callback) {
 		if (data._id && !(data._id instanceof Object)) {
 			data._id = new ObjectID.createFromHexString(data._id);
 		}
 		config.debug && console.log('saving', data._id);
-		collection.save(data, {safe:true}, callback);
+		collection.save(data, {safe: true}, callback);
 	}
 
 	function setMongoContent(data, options, callback) {
 		config.debug && console.log('setMongoContent options', options);
-		MongoClient.connect(config.mongo.server, config.mongo.options,  function (err, db) {
+		MongoClient.connect(config.mongo.server, config.mongo.options, function (err, db) {
 			if (err) {
-				config.errors && console.log('ERR1 setMongoContent',err);
+				config.errors && console.log('ERR1 setMongoContent', err);
 				return callback(err);
 			}
 			db.collection(options.collection, function (err, col) {
 				if (err) {
-					config.errors && console.log('ERR2 setMongoContent',err);
+					config.errors && console.log('ERR2 setMongoContent', err);
 					return callback(err);
 				}
 				if (options.operation) {
 					data.version = options.operation.v;
 				}
 				if (!data._id) {
-					config.debug && console.log('setMongoContent lookup by query',options.query);
+					config.debug && console.log('setMongoContent lookup by query', options.query);
 					col.findOne(options.query, function (err, result) {
-						if (result){
-							data._id=result._id;
+						if (result) {
+							data._id = result._id;
 						}
 						return saveData(col, data, callback);
 					})
@@ -137,7 +138,7 @@ module.exports = function (config) {
 		config.debug && console.log('setMongoAttribute options', options);
 		getMongoContent(options, function (err, result, col) {
 			if (err) {
-				config.errors && console.log('ERR1 setMongoAttribute',err);
+				config.errors && console.log('ERR1 setMongoAttribute', err);
 				return callback(err);
 			}
 			var attribute_options = {
@@ -148,7 +149,7 @@ module.exports = function (config) {
 				attribute_options.query = {_id: result[options.attribute].guid};
 				getMongoContent(attribute_options, function (err, attribute_result, col) {
 					if (err) {
-						config.errors && console.log('ERR2 setMongoAttribute',err);
+						config.errors && console.log('ERR2 setMongoAttribute', err);
 						return callback(err);
 					}
 					attribute_result[options.attribute] = data;
@@ -164,7 +165,7 @@ module.exports = function (config) {
 					collection: options.collection,
 					query: {
 						parent: result._id,
-						name: result.name+'.'+options.attribute
+						name: result.name + '.' + options.attribute
 					}
 				};
 				config.debug && console.log('getMongoAttribute attribute_options', attribute_options);
@@ -186,8 +187,8 @@ module.exports = function (config) {
 						}
 
 						return saveData(col, attribute_data, function (err, attribute_result) {
-							if(err){
-								config.errors && console.log('ERR3 setMongoAttribute',err);
+							if (err) {
+								config.errors && console.log('ERR3 setMongoAttribute', err);
 							}
 							result[options.attribute] = { guid: attribute_result._id };
 							return saveData(col, result, callback);

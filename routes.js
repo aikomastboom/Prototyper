@@ -19,7 +19,7 @@ module.exports = function (server, config) {
 				collection: req.params.collection,
 				attribute: req.params.attribute,
 				ext: req.params.ext,
-				query: {_id:req.params.guid}
+				query: {_id: req.params.guid}
 			};
 			mongodataInstance.getMongoAttribute(options,
 				responder(options, res, next)
@@ -32,7 +32,7 @@ module.exports = function (server, config) {
 			var options = {
 				collection: req.params.collection,
 				ext: req.params.ext,
-				query: {_id:req.params.guid}
+				query: {_id: req.params.guid}
 			};
 			mongodataInstance.getMongoContent(options,
 				responder(options, res, next)
@@ -47,7 +47,7 @@ module.exports = function (server, config) {
 				collection: req.params.collection,
 				attribute: req.params.attribute,
 				ext: req.params.ext,
-				query: {name:req.params.name}
+				query: {name: req.params.name}
 			};
 			mongodataInstance.getMongoAttribute(options,
 				responder(options, res, next)
@@ -60,7 +60,7 @@ module.exports = function (server, config) {
 			var options = {
 				collection: req.params.collection,
 				ext: req.params.ext,
-				query: {name:req.params.name}
+				query: {name: req.params.name}
 			};
 			mongodataInstance.getMongoContent(options,
 				responder(options, res, next)
@@ -75,7 +75,7 @@ module.exports = function (server, config) {
 			} else {
 				if (result) {
 					var operation = null;
-					config.debug && console.log('handleMongoGetResult options',options, result);
+					config.debug && console.log('handleMongoGetResult options', options, result);
 					var data = result;
 					if (options.attribute) {
 						data = result[options.attribute];
@@ -118,11 +118,11 @@ module.exports = function (server, config) {
 			attribute: null
 		};
 		if (splitId.length == 4) {
-			options.query= {_id:splitId[2]};
+			options.query = {_id: splitId[2]};
 			options.attribute = splitId[3];
 			mongodataInstance.getMongoAttribute(options, handleMongoGetResult(options));
 		} else {
-			options.query={name:splitId[2]};
+			options.query = {name: splitId[2]};
 			mongodataInstance.getMongoContent(options, handleMongoGetResult(options));
 		}
 	});
@@ -134,7 +134,7 @@ module.exports = function (server, config) {
 				config.errors && console.log('ERR1 handleMongoSetResult Error while saving document ', options.collection, JSON.stringify(options.query), options.attribute || "", err);
 				return callback && callback(err);
 			}
-			config.debug && console.log('current', current, 'result',result, 'options',options);
+			config.debug && console.log('current', current, 'result', result, 'options', options);
 			if ((!current || !current.name) && result.name) {
 				var operation = { op: [
 					{ p: ['name'], oi: result.name, od: null }
@@ -142,10 +142,10 @@ module.exports = function (server, config) {
 				model.applyOp(options.documentId, operation, function appliedOp(error, version) {
 					config.debug && console.log('setResult applyOp version', version);
 					if (error) {
-						config.error && console.log('ERR2 handleMongoSetResult',error);
+						config.error && console.log('ERR2 handleMongoSetResult', error);
 						return callback && callback(error);
 					}
-					return callback && callback(null,version);
+					return callback && callback(null, version);
 				});
 			}
 		}
@@ -159,22 +159,22 @@ module.exports = function (server, config) {
 				config.errors && console.log('ERR1 handleMongoAttributeSetResult Error while saving document ', options.collection, JSON.stringify(options.query), options.attribute || "", err);
 				return callback && callback(err);
 			}
-			options.debug && console.log('current', current, 'result',result);
+			options.debug && console.log('current', current, 'result', result);
 			if (result.hasOwnProperty('_id')) {
 				config.debug && console.log('// new object created. need to update the parent object.');
 				var pieces = options.documentId.split(':');
-				var parentDocId = pieces[0]+ ':' + pieces[1] + ':' + pieces[2];
+				var parentDocId = pieces[0] + ':' + pieces[1] + ':' + pieces[2];
 				var operation = { op: [
-					{ p: [options.attribute], oi: { guid: result._id } , od: null }
+					{ p: [options.attribute], oi: { guid: result._id }, od: null }
 				], v: options.operation.v };
 
 				model.applyOp(parentDocId, operation, function appliedOp(error, version) {
 					config.debug && console.log('setResult applyOp parent version', version);
 					if (error) {
-						config.error && console.log('ERR2 handleMongoAttributeSetResult',error);
+						config.error && console.log('ERR2 handleMongoAttributeSetResult', error);
 						return callback && callback(error);
 					}
-					return callback && callback(null,version);
+					return callback && callback(null, version);
 				})
 			}
 		}
@@ -185,7 +185,7 @@ module.exports = function (server, config) {
 	// 'applyOp' event is fired when an operational transform is applied to to a shareDoc
 	// a shareDoc has changed and needs to be saved to mongo
 	model.on('applyOp', function persistDocument(documentId, operation, current, previous) {
-		config.debug && console.log('applyOp',documentId,operation,current);
+		config.debug && console.log('applyOp', documentId, operation, current);
 		var splitId = documentId.split(':');
 		var options = {
 			documentId: documentId,
@@ -195,21 +195,21 @@ module.exports = function (server, config) {
 			operation: operation
 		};
 		if (splitId.length == 4) {
-			options.query= {_id:splitId[2]};
+			options.query = {_id: splitId[2]};
 			options.attribute = splitId[3];
 			var data = current;
 			if (options.type == 'json') {
 				data = JSON.stringify(current);
 			}
 			mongodataInstance.setMongoAttribute(data, options, handleMongoAttributeSetResult(options, current, function (err, result) {
-				if(err) {
+				if (err) {
 					config.errors && console.log('ERR1 applyOp', err);
 				}
 			}));
 		} else {
-			options.query={name:splitId[2]};
+			options.query = {name: splitId[2]};
 			mongodataInstance.setMongoContent(current, options, handleMongoSetResult(options, current, function (err, result) {
-				if(err) {
+				if (err) {
 					config.errors && console.log('ERR2 applyOp', err);
 				}
 			}));
@@ -224,7 +224,7 @@ module.exports = function (server, config) {
 			var options = {
 				collection: req.params.collection,
 				ext: req.params.ext,
-				query: {name:req.params.name},
+				query: {name: req.params.name},
 				debug: req.query && req.query.hasOwnProperty('debug')
 			};
 			mongodataInstance.getMongoContent(options, function (err, result) {
@@ -233,11 +233,11 @@ module.exports = function (server, config) {
 				}
 				if (result) {
 					var attribute_parts = options.query.name.split('.');
-					var attribute = attribute_parts[attribute_parts.length-1];
+					var attribute = attribute_parts[attribute_parts.length - 1];
 					var content = result[attribute];
-					options.name=attribute_parts[0];
+					options.name = attribute_parts[0];
 					//options.attribute=attribute;
-					config.debug && console.log('getPreviewContent content',content);
+					config.debug && console.log('getPreviewContent content', content);
 					previewInstance.getPreviewHTML(options, content,
 						responder(options, res, next)
 					);
@@ -245,7 +245,6 @@ module.exports = function (server, config) {
 			});
 		}
 	);
-
 
 
 };

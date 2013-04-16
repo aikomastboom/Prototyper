@@ -12,8 +12,8 @@ var config = {
 		server: "mongodb://silo01.local:27017/Prototyper",
 		options: {
 			server: {
-				maxPoolSize:10,
-				auto_reconnect:true
+				maxPoolSize: 10,
+				auto_reconnect: true
 			}
 		}
 	},

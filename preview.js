@@ -15,10 +15,10 @@ module.exports = function (config) {
 
 	var sourceBody =
 		'<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>\n' +
-		'<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>\n' +
-		'<script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>\n' +
-		'<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>\n' +
-		'<script src="/content/{{collection}}/{{name}}/behaviour.js"></script>\n';
+			'<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>\n' +
+			'<script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>\n' +
+			'<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>\n' +
+			'<script src="/content/{{collection}}/{{name}}/behaviour.js"></script>\n';
 
 	var templateHead = Handlebars.compile(sourceHead);
 	var templateBody = Handlebars.compile(sourceBody);
@@ -34,15 +34,15 @@ module.exports = function (config) {
 
 		function replace(marker, replacement) {
 			var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->');
-			if (html.match(regExp)){
+			if (html.match(regExp)) {
 				html = html.replace(regExp, replacement);
 			} else {
 				html = html.replace('</head>', '<script>if (typeof window.console !== "undefined"){console.log("WARNING: Missing <!--@@' + marker + '-->");}</script>\n</head>');
 			}
 		}
 
-		replace(options.collection+'_'+options.name+'_'+'_marker', styleMarkerReplacement);
-		replace(options.collection+'_'+options.name+'_'+'_marker', jsMarkerReplacement);
+		replace(options.collection + '_' + options.name + '_' + '_marker', styleMarkerReplacement);
+		replace(options.collection + '_' + options.name + '_' + '_marker', jsMarkerReplacement);
 
 		return html;
 	};
