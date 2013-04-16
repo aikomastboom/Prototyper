@@ -49,8 +49,6 @@ module.exports = function (config) {
 
 
 	return {
-		getCSS: getCSS,
-		getJS: getJS,
 		getPreviewHTML: getPreviewHTML,
 		_replaceMarkers: replaceMarkers
 	};
