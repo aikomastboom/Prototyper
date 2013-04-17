@@ -10,10 +10,13 @@
     <div id="htext">
         Editing <b>index</b>
         <div id="main">
-            <ul class="folders" data-bind="foreach: _keys()">
+            <ul class="folders">
+                <!-- ko foreach: _keys() -->
                 <li data-bind="text: $data,
                     css: { selected: $data == $root._chosenFolderId() },
                     click: $root._goToFolder"></li>
+                <!-- /ko -->
+                <li><input data-bind="value: $root._newAttribute" /></li>
             </ul>
         </div>
     </div>
@@ -28,11 +31,11 @@
 <!--<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js"></script>-->
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
-<script src="lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
-<script src="lib/ace/mode-html.js" type="text/javascript" charset="utf-8"></script>
-<script src="lib/ace/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
-<script src="lib/ace/mode-css.js" type="text/javascript" charset="utf-8"></script>
-<script src="lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/ace/mode-html.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/ace/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/ace/mode-css.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="//cdn.sockjs.org/sockjs-0.3.min.js"></script>
 <!--<script src="/channel/bcsocket.js"></script>-->
 <!--<script src="/socket.io/socket.io.js"></script>-->
@@ -50,6 +53,34 @@
     var mainDoc = null;
     editor.setReadOnly(true);
 
+    var setMode = function(attribute, mode) {
+        console.log('setmode', attribute, mode);
+        if (mainDoc.snapshot
+                && mainDoc.snapshot[attribute]) {
+            console.log('got attribute field');
+            if (mainDoc.snapshot[attribute].mode != mode) {
+                console.log('mode differs');
+                var op = [];
+                if (mainDoc.snapshot[attribute].mode) {
+                    console.log('// remove');
+                    op.push({
+                        p:[attribute,'mode'],
+                        od:main.snapshot[attribute].mode
+
+                    })
+                }
+                console.log('//insert');
+                op.push({
+                    p:[attribute,'mode'],
+                    oi:mode
+                });
+                console.log('op',op);
+                mainDoc.submitOp(op, function (err, result) {
+                    console.log('err', err, 'result', result);
+                });
+            }
+        }
+    }
     var setDoc = function(attribute) {
         var mode = 'markdown';
         editor.setReadOnly(true);
@@ -60,11 +91,16 @@
         } else if (attribute == 'index') {
             mode = 'html';
         }
+        mode = (mainDoc.snapshot
+                && mainDoc.snapshot[attribute]
+                && mainDoc.snapshot[attribute].mode
+                ) || mode;
+
         aceMode = require("ace/mode/"+mode).Mode;
         session.setMode(new aceMode());
+        setMode(attribute, mode);
         document.title = attribute;
 
-        //var docName='text:app:'+mainDoc.snapshot._id+':'+attribute;
         var docName='text:app:'+viewModel._id()+':'+attribute;
 
         sharejs.open(docName, 'text', function(error, newDoc) {
@@ -82,6 +118,7 @@
             }
             doc.attach_ace(editor);
             editor.setReadOnly(false);
+            editor.focus(); //To focus the ace editor
         });
     };
 
@@ -97,22 +134,51 @@
                     { p: [], oi: {name:'main'}, od: null }
                 ]);
             } else {
-                var viewModel = ko.mapping.fromJS(main.snapshot);
-                viewModel._keys = function() {
-                    return _.filter(Object.keys(this), function(key){ return key[0] != '_' && key != 'name' && key != 'version'; });
+                var mapping = {
+                    'ignore': ["name", "version"]
                 };
+                main.snapshot._keys = _.filter(Object.keys(main.snapshot),
+                        function(key){
+                            return key[0] != '_'
+                                    && key != 'name'
+                                    && key != 'version';
+                        });
+                console.log('main.shapshot',main.snapshot);
+
+                var viewModel = ko.mapping.fromJS(main.snapshot,mapping);
                 viewModel._chosenFolderId = ko.observable();
+                viewModel._newAttribute = ko.observable();
                 // Behaviours
                 viewModel._goToFolder = function(folder) {
                     viewModel._chosenFolderId(folder);
                     setDoc(folder);
-                }
+                };
+                viewModel._newAttribute.subscribe(function(newValue) {
+                    if (newValue) {
+                        main.submitOp({
+                            p:[newValue],
+                            oi: {}
+                        }, function (err, result) {
+                            viewModel._newAttribute("");
+                        })
+                    }
+                });
 
                 ko.applyBindings(viewModel);
                 window.viewModel=viewModel;
             }
             main.on('change', function () {
-               ko.mapping.fromJS(main.snapshot,viewModel);
+                console.log('main changed!!',main.snapshot);
+                if (viewModel) {
+                    main.snapshot._keys = _.filter(
+                        Object.keys(main.snapshot),
+                            function(key){
+                                return key[0] != '_'
+                                        && key != 'name'
+                                        && key != 'version';
+                            });
+                    ko.mapping.fromJS(main.snapshot,viewModel);
+                }
             });
         }
     })
