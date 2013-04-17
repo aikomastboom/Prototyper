@@ -41,8 +41,25 @@ module.exports = function (config) {
 			}
 		}
 
-		replace(options.collection + '_' + options.name + '_' + '_marker', styleMarkerReplacement);
-		replace(options.collection + '_' + options.name + '_' + '_marker', jsMarkerReplacement);
+		console.log('martker options',options);
+		/* markers:
+		    [type]_[collection]_[name]_[attribute]
+
+			script   -> <script src="/content/collection/name/attribute.js"/>
+			style    -> <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
+
+
+		 	template_[collection]_[nameX]_[attribute]_context_[collection]_[name]_[attribute]
+			template -> put /content/collection/nameX/attribute thru handlebars.. context=collection/name/attribute and include
+
+		    [type]_[collection]_[name]
+			script   -> <script src="/content/collection/name.js"/>
+				contains all type='script' attributes concatenated based on 'order'
+		 	style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
+			    contains all type='style' attributes concatenated based on 'order'
+		 */
+		replace(options.collection + '_' + options.name + '_' + 'style_marker', styleMarkerReplacement);
+		replace(options.collection + '_' + options.name + '_' + 'behaviour_marker', jsMarkerReplacement);
 
 		return html;
 	};
