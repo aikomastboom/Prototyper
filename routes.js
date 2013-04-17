@@ -26,6 +26,7 @@ module.exports = function (server, config) {
 			);
 		}
 	);
+
 	server.get('/data/:collection/:guid.:ext(json)',
 		function getMongoContent(req, res, next) {
 			config.debug && console.log('/data/:collection/:guid.:ext(json)');
@@ -54,6 +55,7 @@ module.exports = function (server, config) {
 			);
 		}
 	);
+
 	server.get('/content/:collection/:name.:ext(json)',
 		function getMongoContent(req, res, next) {
 			config.debug && console.log('/content/:collection/:name.:ext(json)');
@@ -71,7 +73,11 @@ module.exports = function (server, config) {
 	function handleMongoGetResult(options) {
 		function handleResult(err, result) {
 			if (err) {
-				config.errors && console.log('ERR1 handleMongoGetResult.handleResult Error retrieving document ', options.collection, JSON.stringify(options.query), options.attribute || "", err);
+				if (options.attribute && /Data not found*/.test(err.message)) {
+					config.debug && console.log('handleMongoGetResult.handleResult Attribute not found, It will be created on first OT');
+				} else {
+					config.errors && console.log('ERR1 handleMongoGetResult.handleResult Error retrieving document ', options.collection, JSON.stringify(options.query), options.attribute || "", err);
+				}
 			} else {
 				if (result) {
 					var operation = null;
