@@ -8,20 +8,25 @@ module.exports = function (config) {
 		config.debug && console.log('getMongoContent options', options);
 		MongoClient.connect(config.mongo.server, config.mongo.options, function (err, db) {
 			if (err) {
-				config.debug && console.log('ERR1 getMongoContent', err);
+				config.errors && console.log('ERR1 getMongoContent', err);
 				return callback(err);
 			}
 			db.collection(options.collection, function (err, col) {
 				if (err) {
-					config.debug && console.log('ERR2 getMongoContent', err);
+					config.errors && console.log('ERR2 getMongoContent', err);
 					return callback(err);
 				}
 				if (options.query._id && !(options.query._id instanceof Object)) {
-					options.query._id = new ObjectID.createFromHexString(options.query._id);
+					try {
+						options.query._id = new ObjectID.createFromHexString(options.query._id);
+					} catch (err) {
+						config.errors && console.log('ERR3 getMongoContent', err);
+						return callback(err);
+					}
 				}
 				col.findOne(options.query, function (err, result) {
 					if (err) {
-						config.debug && console.log('ERR3 getMongoContent', err);
+						config.errors && console.log('ERR4 getMongoContent', err);
 						return callback(err);
 					}
 					if (!result) {
@@ -42,7 +47,10 @@ module.exports = function (config) {
 			}
 			var attribute_options = null;
 			config.debug && console.log('getMongoAttribute result', result);
-			if (result && result.hasOwnProperty(options.attribute)) {
+			if (result
+				&& result.hasOwnProperty(options.attribute)
+				&& result[options.attribute].guid)
+				{
 				attribute_options = {
 					collection: options.collection,
 					query: {_id: result[options.attribute].guid}
@@ -144,7 +152,9 @@ module.exports = function (config) {
 			var attribute_options = {
 				collection: options.collection
 			};
-			if (result.hasOwnProperty(options.attribute)) {
+			if (result.hasOwnProperty(options.attribute)
+				&& result[options.attribute].guid)
+			{
 				config.debug && console.log('getMongoAttribute parent found, get child and save');
 				attribute_options.query = {_id: result[options.attribute].guid};
 				getMongoContent(attribute_options, function (err, attribute_result, col) {
