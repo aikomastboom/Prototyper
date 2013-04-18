@@ -184,14 +184,51 @@ module.exports = function (server, config) {
 				})
 			}
 		}
-
 		return handleResult;
+	}
+
+	var timers = {};
+
+	function handleSetTimeout(documentId) {
+		return function () {
+			var args = timers[documentId];
+			delete timers[documentId];
+			config.debug && console.log('running timer', documentId);
+			mongodataInstance.setMongoContent(args.current, args.options,
+				handleMongoSetResult(args.options, args.current,
+					function (err, result) {
+						if (err) {
+							config.errors && console.log('ERR2 applyOp', err);
+						}
+				}));
+		};
+	}
+
+	function handleSetAttributeTimeout(documentId) {
+		return function () {
+			var args = timers[documentId];
+			delete timers[documentId];
+			config.debug && console.log('running timer', documentId);
+			var data = args.current;
+			if (args.options.type == 'json') {
+				data = JSON.stringify(args.current);
+			}
+			mongodataInstance.setMongoAttribute(data, args.options,
+				handleMongoAttributeSetResult(args.options, data,
+					function (err, result) {
+						if (err) {
+							config.errors && console.log('ERR1 applyOp', err);
+						}
+				}));
+		};
 	}
 
 	// 'applyOp' event is fired when an operational transform is applied to to a shareDoc
 	// a shareDoc has changed and needs to be saved to mongo
 	model.on('applyOp', function persistDocument(documentId, operation, current, previous) {
 		config.debug && console.log('applyOp', documentId, operation, current);
+		if (operation.v == 0) return;
+
 		var splitId = documentId.split(':');
 		var options = {
 			documentId: documentId,
@@ -200,25 +237,34 @@ module.exports = function (server, config) {
 			attribute: null,
 			operation: operation
 		};
+		var timer = {
+			current: current,
+			options: options
+		};
+		var attribute = false;
 		if (splitId.length == 4) {
 			options.query = {_id: splitId[2]};
 			options.attribute = splitId[3];
-			var data = current;
-			if (options.type == 'json') {
-				data = JSON.stringify(current);
-			}
-			mongodataInstance.setMongoAttribute(data, options, handleMongoAttributeSetResult(options, current, function (err, result) {
-				if (err) {
-					config.errors && console.log('ERR1 applyOp', err);
-				}
-			}));
+			attribute = true;
 		} else {
 			options.query = {name: splitId[2]};
-			mongodataInstance.setMongoContent(current, options, handleMongoSetResult(options, current, function (err, result) {
-				if (err) {
-					config.errors && console.log('ERR2 applyOp', err);
-				}
-			}));
+		}
+		if (timers[documentId]) {
+			timer.timer_id = timers[documentId].timer_id;
+			timers[documentId] = timer;
+			config.debug && console.log('resetting timer', documentId);
+		} else {
+			timers[documentId] = timer;
+			if (attribute) {
+				timer.timer_id = setTimeout(
+					handleSetAttributeTimeout(documentId),
+					config.savedelay);
+			} else {
+				timer.timer_id = setTimeout(
+					handleSetTimeout(documentId),
+					config.savedelay);
+			}
+			config.debug && console.log('setting timer', documentId);
 		}
 	});
 

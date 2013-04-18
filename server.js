@@ -15,7 +15,8 @@ var config = {
 				maxPoolSize: 10,
 				auto_reconnect: true
 			}
-		}
+		},
+		savedelay: 1000
 	},
 	share: {
 		sockjs: {},
