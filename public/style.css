@@ -28,6 +28,10 @@ body {
     font-family: baskerville, palatino, 'palatino linotype', georgia, serif;
 }
 
+#htext div {
+    display: inline;
+}
+
 #editor {
     margin: 0;
     position: absolute;

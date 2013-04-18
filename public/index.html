@@ -10,6 +10,9 @@
     <div id="htext">
         Editing <b>index</b>
         <strong data-bind="text: _keys().length"></strong>
+        <div data-bind="visible: _getMode()">
+        mode: <strong data-bind="text: _getMode()"></strong>
+        </div>
         <div id="main">
             <ul class="folders">
                 <!-- ko foreach: _keys() -->
@@ -157,6 +160,10 @@
                     viewModel._newAttribute("");
                 })
             }
+        });
+        viewModel._getMode = ko.computed(function() {
+            var id =  viewModel._chosenFolderId();
+            return id && viewModel[id].mode;
         });
 
         ko.applyBindings(viewModel);
