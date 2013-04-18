@@ -179,10 +179,14 @@ module.exports = function (config) {
 					}
 				};
 				config.debug && console.log('getMongoAttribute attribute_options', attribute_options);
-				return getMongoContent(attribute_options, function (err, attribute_result) {
+				getMongoContent(attribute_options, function (err, attribute_result) {
 					if (attribute_result) {
 						config.debug && console.log('getMongoAttribute found lost attribute, reconnect');
-						result[options.attribute] = { guid: attribute_result._id };
+						if (result[options.attribute]) {
+							result[options.attribute].guid = attribute_result._id;
+						} else {
+							result[options.attribute] = { guid: attribute_result._id };
+						}
 						return saveData(col, result, callback);
 
 					} else {
