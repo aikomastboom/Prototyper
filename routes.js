@@ -115,7 +115,7 @@ module.exports = function (server, config) {
 	}
 
 	model.on('create', function populateDocument(documentId, data) {
-		console.log('Populating a doc in channel', documentId, data);
+		config.debug && console.log('Populating a doc in channel', documentId, data);
 		var splitId = documentId.split(':');
 		var options = {
 			documentId: documentId,
