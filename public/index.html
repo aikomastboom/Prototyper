@@ -9,6 +9,7 @@
 <div id="header">
     <div id="htext">
         Editing <b>index</b>
+        <strong data-bind="text: _keys().length"></strong>
         <div id="main">
             <ul class="folders">
                 <!-- ko foreach: _keys() -->
@@ -25,10 +26,12 @@
 <div id="editor"></div>
 
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<!--<script src="//knockoutjs.com/downloads/knockout-2.2.1.debug.js"></script>-->
+<!--<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.0/knockout-min.js"></script>-->
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>
 <script src="//underscorejs.org/underscore-min.js"></script>
-<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js"></script>
-<!--<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js"></script>-->
+<!--<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js"></script>-->
+<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
 <script src="/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -121,6 +124,51 @@
             editor.focus(); //To focus the ace editor
         });
     };
+    var mapping = {
+        'ignore': ["name", "version"]
+    };
+    function addComputed(doc) {
+        var snapshot = doc.snapshot;
+        snapshot._keys = _.filter(
+                Object.keys(snapshot),
+                function(key){
+                    return key[0] != '_'
+                            && key != 'name'
+                            && key != 'version';
+                });
+    }
+    function initViewModel(doc) {
+        addComputed(doc);
+        var snapshot = doc.snapshot;
+        var viewModel = ko.mapping.fromJS(snapshot, mapping);
+        viewModel._chosenFolderId = ko.observable();
+        viewModel._newAttribute = ko.observable();
+        // Behaviours
+        viewModel._goToFolder = function(folder) {
+            viewModel._chosenFolderId(folder);
+            setDoc(folder);
+        };
+        viewModel._newAttribute.subscribe(function(newValue) {
+            if (newValue) {
+                mainDoc.submitOp({
+                    p:[newValue],
+                    oi: {}
+                }, function (err, result) {
+                    viewModel._newAttribute("");
+                })
+            }
+        });
+
+        ko.applyBindings(viewModel);
+        window.viewModel=viewModel;
+        console.log('viewModel', viewModel);
+    }
+
+    function updateViewModel(doc) {
+        addComputed(doc);
+        ko.mapping.fromJS(doc.snapshot,viewModel);
+        console.log('updated viewModel', viewModel);
+    }
 
     sharejs.open('json:app:main','json', function (error, main) {
         var indexField = null;
@@ -129,55 +177,19 @@
         } else {
             console.log('yes!!',main);
             mainDoc = main;
-            if (main.snapshot == null) {
-                main.submitOp([
-                    { p: [], oi: {name:'main'}, od: null }
-                ]);
+            var snapshot = main.snapshot;
+            if (snapshot == null) {
+                //TODO test/handle this situation
+                console.log('// TODO no data for main yet??');
             } else {
-                var mapping = {
-                    'ignore': ["name", "version"]
-                };
-                main.snapshot._keys = _.filter(Object.keys(main.snapshot),
-                        function(key){
-                            return key[0] != '_'
-                                    && key != 'name'
-                                    && key != 'version';
-                        });
-                console.log('main.shapshot',main.snapshot);
-
-                var viewModel = ko.mapping.fromJS(main.snapshot,mapping);
-                viewModel._chosenFolderId = ko.observable();
-                viewModel._newAttribute = ko.observable();
-                // Behaviours
-                viewModel._goToFolder = function(folder) {
-                    viewModel._chosenFolderId(folder);
-                    setDoc(folder);
-                };
-                viewModel._newAttribute.subscribe(function(newValue) {
-                    if (newValue) {
-                        main.submitOp({
-                            p:[newValue],
-                            oi: {}
-                        }, function (err, result) {
-                            viewModel._newAttribute("");
-                        })
-                    }
-                });
-
-                ko.applyBindings(viewModel);
-                window.viewModel=viewModel;
+                initViewModel(main)
             }
             main.on('change', function () {
-                console.log('main changed!!',main.snapshot);
-                if (viewModel) {
-                    main.snapshot._keys = _.filter(
-                        Object.keys(main.snapshot),
-                            function(key){
-                                return key[0] != '_'
-                                        && key != 'name'
-                                        && key != 'version';
-                            });
-                    ko.mapping.fromJS(main.snapshot,viewModel);
+                console.log('main changed!!',main.snapshot, viewModel);
+                if (main.snapshot && viewModel) {
+                    updateViewModel(main);
+                } else {
+                    initViewModel(main)
                 }
             });
         }
