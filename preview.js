@@ -1,8 +1,9 @@
 var Handlebars = require('handlebars');
 var _ = require('underscore');
 var less = require('less');
+var when = require('when');
 
-module.exports = function (config) {
+module.exports = function (config, mongodataInstance) {
 
 	var sourceHead =
 		'<script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>\n' +
@@ -20,28 +21,52 @@ module.exports = function (config) {
 			'<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>\n' +
 			'<script src="/content/{{collection}}/{{name}}/behaviour.js"></script>\n';
 
-	var templateHead = Handlebars.compile(sourceHead);
-	var templateBody = Handlebars.compile(sourceBody);
-
 	var getPreviewHTML = function (options, content, callback) {
+		config.debug && console.log('getPreviewHTML',content);
+		var html = content;
+		var promises = replaceMarkers(options, html);
+		when.all(
+			promises,
+			function onSucces (results) {
+				console.log('getPreviewHTML replaceMakers results',results);
+				_.forEach(results, function (result) {
+					if (result) {
+						html = html.replaceAll(result.regExp, result.replacement);
+					}
+				});
+				return callback(null, html);
+			},
+			function onFailure(err) {
+				return callback(err);
+			}
 
-		var html = replaceMarkers(options, content, templateHead(options), templateBody(options));
 
-		callback(null, html);
+		)
+
 	};
 
-	var replaceMarkers = function (options, html, styleMarkerReplacement, jsMarkerReplacement) {
+	var replaceMarkers = function (options, html) {
 
-		function replace(marker, replacement) {
+		function replace(marker, getReplacement) {
+			var deferred = when.defer();
 			var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->');
-			if (html.match(regExp)) {
-				html = html.replace(regExp, replacement);
+			var result = html.match(regExp);
+			if (result) {
+				getReplacement(result, function (err, replacement) {
+					if (err) {
+						deferred.reject(err);
+					} else {
+						deferred.resolve({regExp:regExp, replacement:replacement})
+					}
+				})
 			} else {
-				html = html.replace('</head>', '<script>if (typeof window.console !== "undefined"){console.log("WARNING: Missing <!--@@' + marker + '-->");}</script>\n</head>');
+				deferred.resolve();
 			}
+			return deferred.promise;
 		}
 
-		console.log('martker options',options);
+		console.log('marker options',options);
+		var promises = [];
 		/* markers:
 		    [type]_[collection]_[name]_[attribute]
 
@@ -58,10 +83,54 @@ module.exports = function (config) {
 		 	style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
 			    contains all type='style' attributes concatenated based on 'order'
 		 */
-		replace(options.collection + '_' + options.name + '_' + 'style_marker', styleMarkerReplacement);
-		replace(options.collection + '_' + options.name + '_' + 'behaviour_marker', jsMarkerReplacement);
+//		replace('script_' + options.collection + '_' + options.name + '_' + options.attribute, function (result, callback) {
+		promises.push(
+			replace('script_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
+				var context = {
+					collection: result[0],
+					name: result[1],
+					attribute: result[2]
+				};
+				return callback( null,
+					'<script src="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"/>\n'
+				);
+		}));
 
-		return html;
+//		replace('style_' + options.collection + '_' + options.name + '_' + options.attribute, function (result, callback) {
+		promises.push(
+			replace('style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
+			var context = {
+				collection: result[0],
+				name: result[1],
+				attribute: result[2]
+			};
+			return callback( null,
+				'<link href="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">\n'
+			);
+		}));
+
+
+//		replace('template_' + options.collection + '_' + options.name + '_' + options.attribute + '_context_', function (result, callback) {
+		promises.push(
+			replace('template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
+				var context = {
+					caller_collection: result[0],
+					caller_name: result[1],
+					caller_attribute: result[2],
+					collection: result[3],
+					name: result[4],
+					attribute: result[5]
+				};
+				mongodataInstance.getMongoAttribute(options, function (err, result) {
+					if (err) {
+						return callback(err);
+					}
+					var template = Handlebars.compile(result[options.attribute]);
+					return callback(null, template(context));
+				});
+		}));
+
+		return promises;
 	};
 
 

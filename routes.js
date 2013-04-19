@@ -267,7 +267,7 @@ module.exports = function (app, config) {
 		}
 	});
 
-	var previewInstance = preview(config);
+	var previewInstance = preview(config, mongodataInstance);
 
 	app.get('/page/:collection/:name.:ext(html)',
 		function getPreviewContent(req, res, next) {
@@ -286,12 +286,16 @@ module.exports = function (app, config) {
 					var attribute_parts = options.query.name.split('.');
 					var attribute = attribute_parts[attribute_parts.length - 1];
 					var content = result[attribute];
-					options.name = attribute_parts[0];
-					//options.attribute=attribute;
-					config.debug && console.log('getPreviewContent content', content);
-					previewInstance.getPreviewHTML(options, content,
-						responder(options, res, next)
-					);
+					if (content) {
+						options.name = attribute_parts[0];
+						//options.attribute=attribute;
+						config.debug && console.log('getPreviewContent content', content);
+						previewInstance.getPreviewHTML(options, content,
+							responder(options, res, next)
+						);
+					} else {
+						return next();
+					}
 				}
 			});
 		}
