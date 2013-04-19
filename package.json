@@ -16,7 +16,7 @@
   "devDependencies": {
     "sockjs": "~0.3.5"
   },
-  "repository": "",
+  "repository": "git://github.com/aikomastboom/Prototyper.git",
   "author": "Aiko Mastboom",
   "license": "Unknown",
   "readmeFilename": "README.md",
