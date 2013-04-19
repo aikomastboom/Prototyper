@@ -1,4 +1,5 @@
 var Handlebars = require('handlebars');
+var markdown = require('markdown').markdown;
 var _ = require('underscore');
 var less = require('less');
 var when = require('when');
@@ -74,8 +75,14 @@ module.exports = function (config, mongodataInstance) {
 			style    -> <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
 
 
-		 	template_[collection]_[nameX]_[attribute]_context_[collection]_[name]_[attribute]
-			template -> put /content/collection/nameX/attribute thru handlebars.. context=collection/name/attribute and include
+		 	markdown_[collection]_[nameX]_[attribute]
+		 	markdown -> parse /content/collection/name/attribute into html and include
+
+		 	template_[collectionX]_[nameX]_[attributeX]_context_[collectionY]_[nameY]
+			template -> put /content/collectionX/nameX/attributeX thru handlebars.. context=collectionY/nameY/attributeY and include
+
+			remove_.*_end_remove
+			remove_ -> removes markers and everything in between
 
 		    [type]_[collection]_[name]
 			script   -> <script src="/content/collection/name.js"/>
@@ -83,7 +90,6 @@ module.exports = function (config, mongodataInstance) {
 		 	style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
 			    contains all type='style' attributes concatenated based on 'order'
 		 */
-//		replace('script_' + options.collection + '_' + options.name + '_' + options.attribute, function (result, callback) {
 		promises.push(
 			replace('script_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
 				var context = {
@@ -96,7 +102,6 @@ module.exports = function (config, mongodataInstance) {
 				);
 		}));
 
-//		replace('style_' + options.collection + '_' + options.name + '_' + options.attribute, function (result, callback) {
 		promises.push(
 			replace('style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
 			var context = {
@@ -110,25 +115,47 @@ module.exports = function (config, mongodataInstance) {
 		}));
 
 
-//		replace('template_' + options.collection + '_' + options.name + '_' + options.attribute + '_context_', function (result, callback) {
 		promises.push(
-			replace('template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
-				var context = {
-					caller_collection: result[0],
-					caller_name: result[1],
-					caller_attribute: result[2],
-					collection: result[3],
-					name: result[4],
-					attribute: result[5]
+			replace('template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)',
+				function (result, callback) {
+				var template = {
+					collection: result[0],
+					name: result[1],
+					attribute: result[2]
 				};
-				mongodataInstance.getMongoAttribute(options, function (err, result) {
+				var context = {
+					collection: result[3],
+					name: result[4]
+				};
+				mongodataInstance.getMongoAttribute(template, function (err, result) {
 					if (err) {
 						return callback(err);
 					}
 					var template = Handlebars.compile(result[options.attribute]);
-					return callback(null, template(context));
+					mongodataInstance.getMongoContent(context, function (err, result) {
+						if (err) {
+							return callback(err);
+						}
+						return callback(null, template(result));
+					});
 				});
 		}));
+
+		promises.push(
+			replace('markdown_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
+				var attribute = {
+					collection: result[0],
+					name: result[1],
+					attribute: result[2]
+				};
+				mongodataInstance.getMongoAttribute(attribute, function (err, result) {
+					if (err) {
+						return callback(err);
+					}
+					var html = markdown.toHTML(result[options.attribute]);
+					return callback(null, html);
+				});
+			}));
 
 		return promises;
 	};
