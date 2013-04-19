@@ -86,7 +86,8 @@
                 });
             }
         }
-    }
+    };
+
     var setDoc = function(attribute) {
         var mode = 'markdown';
         editor.setReadOnly(true);
@@ -130,6 +131,7 @@
     var mapping = {
         'ignore': ["name", "version"]
     };
+
     function addComputed(doc) {
         var snapshot = doc.snapshot;
         snapshot._keys = _.filter(
@@ -140,6 +142,7 @@
                             && key != 'version';
                 });
     }
+
     function initViewModel(doc) {
         addComputed(doc);
         var snapshot = doc.snapshot;
