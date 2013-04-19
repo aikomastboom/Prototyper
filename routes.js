@@ -3,16 +3,15 @@ var mongodata = require('./mongodata.js');
 var responder = require('./responder.js');
 var preview = require('./preview.js');
 
-module.exports = function (server, config) {
+module.exports = function (app, config) {
 
-	// Attach the sharejs REST and Socket.io interfaces to the server
-	sharejs.server.attach(server, config.share);
-	var model = server.model;
-
+	// share wraps express app with http.Server
+	var server = sharejs.server.attach(app, config.share);
+	var model = app.model;
 
 	var mongodataInstance = mongodata(config);
 
-	server.get('/data/:collection/:guid/:attribute.:ext(css|less|js|html)',
+	app.get('/data/:collection/:guid/:attribute.:ext(css|less|js|html)',
 		function getMongoAttribute(req, res, next) {
 			config.debug && console.log('/data/:collection/:guid/:attribute.:ext(less|js|html)');
 			var options = {
@@ -27,7 +26,7 @@ module.exports = function (server, config) {
 		}
 	);
 
-	server.get('/data/:collection/:guid.:ext(json)',
+	app.get('/data/:collection/:guid.:ext(json)',
 		function getMongoContent(req, res, next) {
 			config.debug && console.log('/data/:collection/:guid.:ext(json)');
 			var options = {
@@ -41,7 +40,7 @@ module.exports = function (server, config) {
 		}
 	);
 
-	server.get('/content/:collection/:name/:attribute.:ext(css|less|js|html)',
+	app.get('/content/:collection/:name/:attribute.:ext(css|less|js|html)',
 		function getMongoAttribute(req, res, next) {
 			config.debug && console.log('/content/:collection/:name/:attribute.:ext(less|js|html)');
 			var options = {
@@ -56,7 +55,7 @@ module.exports = function (server, config) {
 		}
 	);
 
-	server.get('/content/:collection/:name.:ext(json)',
+	app.get('/content/:collection/:name.:ext(json)',
 		function getMongoContent(req, res, next) {
 			config.debug && console.log('/content/:collection/:name.:ext(json)');
 			var options = {
@@ -270,7 +269,7 @@ module.exports = function (server, config) {
 
 	var previewInstance = preview(config);
 
-	server.get('/page/:collection/:name.:ext(html)',
+	app.get('/page/:collection/:name.:ext(html)',
 		function getPreviewContent(req, res, next) {
 			config.debug && console.log('/page/:collection/:name.:ext(html)');
 			var options = {
@@ -298,5 +297,5 @@ module.exports = function (server, config) {
 		}
 	);
 
-
+	return server;
 };

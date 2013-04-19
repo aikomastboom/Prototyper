@@ -16,7 +16,7 @@ var config = {
 				auto_reconnect: true
 			}
 		},
-		savedelay: 1000
+		savedelay: 200
 	},
 	share: {
 		sockjs: {},
@@ -24,13 +24,14 @@ var config = {
 	}
 };
 
-var server = express.createServer();
-server.use(connect.logger());
-server.use(express.static(__dirname + '/public'));
+var app = express();
+config.debug && app.use(connect.logger());
+app.use(express.static(__dirname + '/public'));
 
-instance(server, config);
+
+var server = instance(app, config);
 
 server.listen(config.port, function (err) {
-//	console.log('routes',server.routes);
+	config.debug && console.log('routes',server.routes);
 	console.log('Server running at http://127.0.0.1:', config.port);
 });

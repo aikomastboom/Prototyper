@@ -1,12 +1,13 @@
 {
   "name": "Prototyper",
-  "version": "0.0.0",
-  "main": "index.js",
+  "version": "0.0.1",
+  "main": "server.js",
+  "engine": "node 0.10.4",
   "private": "true",
   "dependencies": {
     "share": "~0.6.0",
-    "connect": "~2.7.5",
-	"express": "~2.5.11",
+    "connect": "~2.7.6",
+    "express": "~3.2.0",
     "mongodb": "~1.2.14",
     "handlebars": "~1.0.10",
     "underscore": "~1.4.4",
@@ -17,7 +18,7 @@
   },
   "repository": "",
   "author": "Aiko Mastboom",
-  "license": "BSD",
+  "license": "Unknown",
   "readmeFilename": "README.md",
   "directories": {
     "test": "test"
