@@ -21,17 +21,18 @@ var config = {
 	share: {
 		sockjs: {},
 		db: {type: 'none'}
-	}
+	},
+	public_path: __dirname + '/public'
 };
 
 var app = express();
 config.debug && app.use(connect.logger());
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(config.public_path));
 
 
 var server = instance(app, config);
 
 server.listen(config.port, function (err) {
-	config.debug && console.log('routes',server.routes);
+	config.debug && console.log('routes', server.routes);
 	console.log('Server running at http://127.0.0.1:', config.port);
 });

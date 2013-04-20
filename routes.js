@@ -3,6 +3,8 @@ var mongodata = require('./mongodata.js');
 var responder = require('./responder.js');
 var preview = require('./preview.js');
 var importer = require('./importer.js');
+
+var path = require('path');
 var fs = require('fs');
 
 module.exports = function (app, config) {
@@ -185,6 +187,7 @@ module.exports = function (app, config) {
 				})
 			}
 		}
+
 		return handleResult;
 	}
 
@@ -201,7 +204,7 @@ module.exports = function (app, config) {
 						if (err) {
 							config.errors && console.log('ERR2 applyOp', err);
 						}
-				}));
+					}));
 		};
 	}
 
@@ -220,7 +223,7 @@ module.exports = function (app, config) {
 						if (err) {
 							config.errors && console.log('ERR1 applyOp', err);
 						}
-				}));
+					}));
 		};
 	}
 
@@ -315,12 +318,18 @@ module.exports = function (app, config) {
 
 	var importerInstance = importer(config, mongodataInstance);
 	app.get('/importer/:filename', function importFile(req, res, next) {
-		config.debug && console.log('/importer/:filename');
-		var sub_doc = fs.readFile( req.params.filename, 'utf-8');
-		// process with leftover marker support
-		var options = {};
-		importerInstance.importer(sub_doc, options, function handleLeftover(err, result) {
-			responder(options, res, next);
+		var filename = path.resolve(config.public_path, req.params.filename);
+		config.debug && console.log('/importer/:filename', filename);
+		fs.readFile(filename, 'utf-8', function (err, sub_doc) {
+			if (err) {
+				config.errors && console.log('ERR readFile', filename, err);
+				next(err);
+			}
+			// process with leftover marker support
+			var options = {};
+			importerInstance.importer(sub_doc, options,
+				responder(options, res, next)
+			);
 		});
 	});
 

@@ -8,11 +8,12 @@
     <!-- @@remove_ -->
     <link href="/style.css" rel="stylesheet" type="text/css">
     <!-- @@_end_remove -->
-    <!-- @@style_app_main_style -->
+    <!-- @@style__app_main_style -->
 </head>
 
 <body>
-<!-- @@import__app_main_body -->
+<!-- @@template__app_main_body__context__app_main -->
+<!-- @@import__app_main_body_ -->
 <div id="header">
     <div id="htext">
         Editing <b>index</b>
@@ -35,7 +36,8 @@
 
 <div id="editor"></div>
 
-<!-- @@import__app_main_scripts -->
+<!-- @@template__app_main_scripts__context__app_main -->
+<!-- @@import__app_main_scripts_ -->
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <!-- @@remove_ -->
 <!--<script src="//knockoutjs.com/downloads/knockout-2.2.1.debug.js"></script>-->
@@ -60,8 +62,9 @@
 <script src="/share/share.uncompressed.js"></script>
 <script src="/share/json.js"></script>
 <script src="/share/ace.js"></script>
-<!-- @@end_import__app_main_scripts -->
-<!-- @@import__app_main_behaviour -->
+<!-- @@_end_import__app_main_scripts -->
+<!-- @@template__app_main_behaviour__context__app_main -->
+<!-- @@import__app_main_behaviour_ -->
 <script>
     var attribute = 'index';
     var editor = ace.edit("editor");
@@ -218,8 +221,8 @@
         }
     })
 </script>
-<!-- @@import__app_main_behaviour -->
-<!-- @@end_import__app_main_body -->
+<!-- @@_end_import__app_main_behaviour -->
+<!-- @@_end_import__app_main_body -->
 </body>
 </html>	
 
