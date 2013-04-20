@@ -15,13 +15,6 @@ module.exports = function (config, mongodataInstance) {
 			'<link href="/content/{{collection}}/{{name}}/style.css" media="all" rel="stylesheet" type="text/css">\n' +
 			'{{/if}}';
 
-	var sourceBody =
-		'<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>\n' +
-			'<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>\n' +
-			'<script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>\n' +
-			'<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>\n' +
-			'<script src="/content/{{collection}}/{{name}}/behaviour.js"></script>\n';
-
 	var getPreviewHTML = function (options, content, callback) {
 		config.debug && console.log('getPreviewHTML', content);
 		var html = content;
@@ -116,7 +109,7 @@ module.exports = function (config, mongodataInstance) {
 				};
 				return callback(null, {
 					regExp: new RegExp(result, 'gmi'),
-					value: '<script src="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"/>\n'
+					value: '<script src="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"></script>'
 				});
 			}));
 
@@ -132,7 +125,7 @@ module.exports = function (config, mongodataInstance) {
 				};
 				return callback(null, {
 					regExp: new RegExp(result, 'gmi'),
-					value: '<link href="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">\n'
+					value: '<link href="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">'
 				});
 			}));
 
