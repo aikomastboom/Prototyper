@@ -36,42 +36,42 @@ module.exports = function (config, mongodataInstance) {
 		)
 	};
 
-	var replaceMarkers = function (options, html) {
-
-		function replace(marker, getReplacement, once) {
-			var deferred = when.defer();
-			var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->', 'gmi');
-			var matches = html.match(regExp);
-			if (matches) {
-				if (once) {
-					matches = [matches[0]];
-				}
-				var match_promisses = [];
-				_.forEach(matches, function (result) {
-					var deferred2 = when.defer();
-					match_promisses.push(deferred2.promise);
-					getReplacement(result, function (err, replacement) {
-						if (err) {
-							deferred2.reject(err);
-						} else {
-							deferred2.resolve({regExp: replacement.regExp || regExp, replacement: replacement.value})
-						}
-					})
-				});
-				when.all(
-					match_promisses,
-					function onSuccess(results) {
-						deferred.resolve(results);
-					},
-					function onFailure(err) {
-						deferred.reject(err);
-					}
-				);
-			} else {
-				deferred.resolve();
+	var replace = function (html, marker, getReplacement, once) {
+		var deferred = when.defer();
+		var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->', 'gmi');
+		var matches = html.match(regExp);
+		if (matches) {
+			if (once) {
+				matches = [matches[0]];
 			}
-			return deferred.promise;
+			var match_promisses = [];
+			_.forEach(matches, function (result) {
+				var deferred2 = when.defer();
+				match_promisses.push(deferred2.promise);
+				getReplacement(result, function (err, replacement) {
+					if (err) {
+						deferred2.reject(err);
+					} else {
+						deferred2.resolve({regExp: replacement.regExp || regExp, replacement: replacement.value})
+					}
+				})
+			});
+			when.all(
+				match_promisses,
+				function onSuccess(results) {
+					deferred.resolve(results);
+				},
+				function onFailure(err) {
+					deferred.reject(err);
+				}
+			);
+		} else {
+			deferred.resolve();
 		}
+		return deferred.promise;
+	};
+
+	var replaceMarkers = function (options, html) {
 
 		console.log('marker options', options);
 		var promises = [];
@@ -100,7 +100,7 @@ module.exports = function (config, mongodataInstance) {
 		var script_tag = 'script_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var script_regexp = new RegExp(script_tag);
 		promises.push(
-			replace(script_tag, function (result, callback) {
+			replace(html, script_tag, function (result, callback) {
 				var parts = script_regexp.exec(result);
 				var context = {
 					collection: parts[1],
@@ -116,7 +116,7 @@ module.exports = function (config, mongodataInstance) {
 		var style_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var style_regexp = new RegExp(style_tag);
 		promises.push(
-			replace(style_tag, function (result, callback) {
+			replace(html, style_tag, function (result, callback) {
 				var parts = style_regexp.exec(result);
 				var context = {
 					collection: parts[1],
@@ -132,7 +132,7 @@ module.exports = function (config, mongodataInstance) {
 		var template_tag = 'template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var template_regexp = new RegExp(template_tag);
 		promises.push(
-			replace(template_tag, function (result, callback) {
+			replace(html, template_tag, function (result, callback) {
 				var parts = template_regexp.exec(result);
 				var template = {
 					collection: parts[1],
@@ -170,10 +170,10 @@ module.exports = function (config, mongodataInstance) {
 				});
 			}));
 
-		var markdown_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var markdown_tag = 'markdown_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var markdown_regexp = new RegExp(markdown_tag);
 		promises.push(
-			replace('markdown_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
+			replace(html, markdown_tag, function (result, callback) {
 				var parts = markdown_regexp.exec(result);
 				var attribute = {
 					collection: parts[1],
@@ -192,10 +192,10 @@ module.exports = function (config, mongodataInstance) {
 				});
 			}));
 
-		var remove_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var remove_tag = 'remove_([\\w\\W]*)_end_remove';
 		//var remove_regexp = new RegExp(remove_tag);
 		promises.push(
-			replace('remove_([\\w\\W]*)_end_remove', function (result, callback) {
+			replace(html, remove_tag, function (result, callback) {
 				return callback(null, {
 					regExp: null,
 					value: ""
@@ -208,7 +208,8 @@ module.exports = function (config, mongodataInstance) {
 
 	return {
 		getPreviewHTML: getPreviewHTML,
-		_replaceMarkers: replaceMarkers
+		_replaceMarkers: replaceMarkers,
+		replace: replace
 	};
 };
 
