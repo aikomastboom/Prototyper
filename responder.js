@@ -16,14 +16,13 @@ var getMimeType = function (ext) {
 
 module.exports = function (options, res, next) {
 	var responder = function (err, result) {
-		console.log('err', err);
 		if (err) {
+			console.log('ERR responder', options, err)	;
 			if (/Data not found*/.test(err.message)) {
 				res.status(404);
 			}
 			return next(err.message);
 		}
-		console.log('responder options', options);
 		var contentType = getMimeType(options.ext);
 		res.setHeader('Content-Type', contentType);
 		var content = result;
