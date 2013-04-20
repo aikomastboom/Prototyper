@@ -1,8 +1,12 @@
 var when = require('when');
+var _ = require('underscore');
+
+var marker_prefix = '<!--\\s*@@';
+var marker_postfix = '\\s*-->';
 
 function replace(text, marker, getReplacement, once) {
 	var deferred = when.defer();
-	var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->', 'gmi');
+	var regExp = new RegExp(marker_prefix + marker + marker_postfix, 'gmi');
 	var matches = text.match(regExp);
 	if (matches) {
 		if (once) {
@@ -16,7 +20,11 @@ function replace(text, marker, getReplacement, once) {
 				if (err) {
 					deferred2.reject(err);
 				} else {
-					deferred2.resolve({regExp: replacement.regExp || regExp, replacement: replacement.value})
+					var replace_result ={
+						regExp: replacement.regExp || regExp,
+						replacement: replacement.value
+					};
+					deferred2.resolve(replace_result)
 				}
 			})
 		});
@@ -30,7 +38,7 @@ function replace(text, marker, getReplacement, once) {
 			}
 		);
 	} else {
-		deferred.resolve();
+		deferred.resolve({});
 	}
 	return deferred.promise;
 }
@@ -53,6 +61,8 @@ function handTextManipulation(text, promises, handler, callback) {
 }
 
 module.exports = {
+	marker_prefix: marker_prefix,
+	marker_postfix: marker_postfix,
 	replace: replace,
 	handTextManipulation: handTextManipulation
 };
