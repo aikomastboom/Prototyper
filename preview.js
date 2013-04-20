@@ -3,6 +3,7 @@ var markdown = require('markdown').markdown;
 var _ = require('underscore');
 var less = require('less');
 var when = require('when');
+var helpers = require('./helpers.js');
 
 module.exports = function (config, mongodataInstance) {
 
@@ -15,66 +16,21 @@ module.exports = function (config, mongodataInstance) {
 			'<link href="/content/{{collection}}/{{name}}/style.css" media="all" rel="stylesheet" type="text/css">\n' +
 			'{{/if}}';
 
-	var getPreviewHTML = function (options, content, callback) {
+	var getPreviewHTML = function (content ,options, callback) {
 		config.debug && console.log('getPreviewHTML', content);
-		var html = content;
-		var promises = replaceMarkers(options, html);
-		when.all(
-			promises,
-			function onSucces(all_results) {
-				console.log('getPreviewHTML replaceMakers results', all_results);
-				_.forEach(all_results, function (results) {
-					_.forEach(results, function (result) {
-						html = html.replace(result.regExp, result.replacement);
-					});
-				});
-				return callback(null, html);
-			},
-			function onFailure(err) {
-				return callback(err);
-			}
-		)
-	};
-
-	var replace = function (html, marker, getReplacement, once) {
-		var deferred = when.defer();
-		var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->', 'gmi');
-		var matches = html.match(regExp);
-		if (matches) {
-			if (once) {
-				matches = [matches[0]];
-			}
-			var match_promisses = [];
-			_.forEach(matches, function (result) {
-				var deferred2 = when.defer();
-				match_promisses.push(deferred2.promise);
-				getReplacement(result, function (err, replacement) {
-					if (err) {
-						deferred2.reject(err);
-					} else {
-						deferred2.resolve({regExp: replacement.regExp || regExp, replacement: replacement.value})
-					}
-				})
-			});
-			when.all(
-				match_promisses,
-				function onSuccess(results) {
-					deferred.resolve(results);
-				},
-				function onFailure(err) {
-					deferred.reject(err);
-				}
-			);
-		} else {
-			deferred.resolve();
+		var promises = replaceMarkers( content, content);
+		function handler( text, result) {
+			return text.replace(result.regExp, result.replacement);
 		}
-		return deferred.promise;
+		helpers.handTextManipulation(content,
+			promises,
+			handler,
+			callback
+		);
 	};
 
-	var replaceMarkers = function (options, html) {
+	var replaceMarkers = function (html, options) {
 
-		console.log('marker options', options);
-		var promises = [];
 		/* markers:
 		 [type]_[collection]_[name]_[attribute]
 
@@ -97,10 +53,12 @@ module.exports = function (config, mongodataInstance) {
 		 style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
 		 contains all type='style' attributes concatenated based on 'order'
 		 */
+		var promises = [];
+
 		var script_tag = 'script_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var script_regexp = new RegExp(script_tag);
 		promises.push(
-			replace(html, script_tag, function (result, callback) {
+			helpers.replace(html, script_tag, function (result, callback) {
 				var parts = script_regexp.exec(result);
 				var context = {
 					collection: parts[1],
@@ -116,7 +74,7 @@ module.exports = function (config, mongodataInstance) {
 		var style_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var style_regexp = new RegExp(style_tag);
 		promises.push(
-			replace(html, style_tag, function (result, callback) {
+			helpers.replace(html, style_tag, function (result, callback) {
 				var parts = style_regexp.exec(result);
 				var context = {
 					collection: parts[1],
@@ -132,7 +90,7 @@ module.exports = function (config, mongodataInstance) {
 		var template_tag = 'template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var template_regexp = new RegExp(template_tag);
 		promises.push(
-			replace(html, template_tag, function (result, callback) {
+			helpers.replace(html, template_tag, function (result, callback) {
 				var parts = template_regexp.exec(result);
 				var template = {
 					collection: parts[1],
@@ -157,13 +115,13 @@ module.exports = function (config, mongodataInstance) {
 						var rendered = template(context_result);
 						config.debug && console.log('// recurse markers on rendered template');
 						context.query = {_id: context_result._id};
-						getPreviewHTML(context, rendered, function (err, html) {
+						getPreviewHTML(context, rendered, function (err, preview_html) {
 							if (err) {
 								return callback(err);
 							}
 							return callback(null, {
 								regExp: new RegExp(result, 'gmi'),
-								value: html
+								value: preview_html
 							});
 						})
 					});
@@ -173,7 +131,7 @@ module.exports = function (config, mongodataInstance) {
 		var markdown_tag = 'markdown_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var markdown_regexp = new RegExp(markdown_tag);
 		promises.push(
-			replace(html, markdown_tag, function (result, callback) {
+			helpers.replace(html, markdown_tag, function (result, callback) {
 				var parts = markdown_regexp.exec(result);
 				var attribute = {
 					collection: parts[1],
@@ -195,7 +153,7 @@ module.exports = function (config, mongodataInstance) {
 		var remove_tag = 'remove_([\\w\\W]*)_end_remove';
 		//var remove_regexp = new RegExp(remove_tag);
 		promises.push(
-			replace(html, remove_tag, function (result, callback) {
+			helpers.replace(html, remove_tag, function (result, callback) {
 				return callback(null, {
 					regExp: null,
 					value: ""
@@ -208,8 +166,7 @@ module.exports = function (config, mongodataInstance) {
 
 	return {
 		getPreviewHTML: getPreviewHTML,
-		_replaceMarkers: replaceMarkers,
-		replace: replace
+		_replaceMarkers: replaceMarkers
 	};
 };
 

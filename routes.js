@@ -2,6 +2,8 @@ var sharejs = require('share');
 var mongodata = require('./mongodata.js');
 var responder = require('./responder.js');
 var preview = require('./preview.js');
+var importer = require('./importer.js');
+var fs = require('fs');
 
 module.exports = function (app, config) {
 
@@ -276,7 +278,7 @@ module.exports = function (app, config) {
 				collection: req.params.collection,
 				ext: req.params.ext,
 				query: {name: req.params.name},
-				req: { query: req.query,
+				req: { query: req.query || {},
 					headers: req.headers
 				}
 //				debug: req.query && req.query.hasOwnProperty('debug')
@@ -300,7 +302,7 @@ module.exports = function (app, config) {
 						};
 
 						config.debug && console.log('getPreviewContent content', attribute_value);
-						previewInstance.getPreviewHTML(preview_options, attribute_value,
+						previewInstance.getPreviewHTML(attribute_value, preview_options,
 							responder(options, res, next)
 						);
 					} else {
@@ -310,6 +312,17 @@ module.exports = function (app, config) {
 			});
 		}
 	);
+
+	var importerInstance = importer(config, mongodataInstance);
+	app.get('/importer/:filename', function importFile(req, res, next) {
+		config.debug && console.log('/importer/:filename');
+		var sub_doc = fs.readFile( req.params.filename, 'utf-8');
+		// process with leftover marker support
+		var options = {};
+		importerInstance.importer(sub_doc, options, function handleLeftover(err, result) {
+			responder(options, res, next);
+		});
+	});
 
 	return server;
 };
