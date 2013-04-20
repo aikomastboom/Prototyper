@@ -316,7 +316,8 @@ module.exports = function (app, config) {
 		}
 	);
 
-	var importerInstance = importer(config, mongodataInstance);
+	var importerInstance = importer(config, mongodataInstance, model);
+
 	app.get('/importer/:filename', function importFile(req, res, next) {
 		var filename = path.resolve(config.public_path, req.params.filename);
 		config.debug && console.log('/importer/:filename', filename);
