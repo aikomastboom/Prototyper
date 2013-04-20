@@ -33,19 +33,19 @@ module.exports = function (config, mongodataInstance) {
 			function onFailure(err) {
 				return callback(err);
 			}
-
-
 		)
-
 	};
 
 	var replaceMarkers = function (options, html) {
 
-		function replace(marker, getReplacement) {
+		function replace(marker, getReplacement, once) {
 			var deferred = when.defer();
 			var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->', 'gmi');
 			var matches = html.match(regExp);
 			if (matches) {
+				if (once) {
+					matches = [matches[0]];
+				}
 				var match_promisses = [];
 				_.forEach(matches, function (result) {
 					var deferred2 = when.defer();
@@ -141,21 +141,31 @@ module.exports = function (config, mongodataInstance) {
 				};
 				var context = {
 					collection: parts[4],
-					name: parts[5]
+					name: parts[5],
+					query: { name: parts[5]},
+					req: options.req
 				};
 				mongodataInstance.getMongoAttribute(template, function (err, attribute_result) {
 					if (err) {
 						return callback(err);
 					}
-					var template = Handlebars.compile(attribute_result[options.attribute]);
+					var template = Handlebars.compile(attribute_result[template.attribute]);
 					mongodataInstance.getMongoContent(context, function (err, context_result) {
 						if (err) {
 							return callback(err);
 						}
-						return callback(null, {
-							regExp: new RegExp(result, 'gmi'),
-							value: template(context_result)
-						});
+						var rendered = template(context_result);
+						config.debug && console.log('// recurse markers on rendered template');
+						context.query = {_id: context_result._id};
+						getPreviewHTML(context, rendered, function (err, html) {
+							if (err) {
+								return callback(err);
+							}
+							return callback(null, {
+								regExp: new RegExp(result, 'gmi'),
+								value: html
+							});
+						})
 					});
 				});
 			}));
@@ -190,7 +200,7 @@ module.exports = function (config, mongodataInstance) {
 					regExp: null,
 					value: ""
 				});
-			}));
+			}, true));
 
 		return promises;
 	};
