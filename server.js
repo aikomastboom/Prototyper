@@ -38,6 +38,6 @@ app.use('/lib/ace', express.static(config.ace_client));
 var server = instance(app, config);
 
 server.listen(config.port, function (err) {
-	config.debug && console.log('routes', server.routes);
+	config.debug && console.log('routes', app.routes);
 	console.log('Server running at http://127.0.0.1:', config.port);
 });

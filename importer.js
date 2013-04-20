@@ -138,7 +138,7 @@ module.exports = function (config, mongoInstance, sharemodel) {
 						if (context.attribute == "json") {
 							var data = null;
 							try {
-							data = JSON.parse(remainder);
+							    data = JSON.parse(remainder);
 							} catch (err) {
 								config.errors && console.log('ERR importer.replaceMarkers JSON.parse(remainder)', remainder, err);
 								return callback(err);

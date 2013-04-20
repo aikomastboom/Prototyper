@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- @@import__app_main_json_ -->
+<!DOCTYPE html><!-- @@remove_ --><!-- @@import__app_main_json_ -->
 { "_availableModes" : [
     { "name": "none", "ace":"none" },
     { "name": "HTML", "ace":"html" },
@@ -18,12 +18,15 @@
     <!-- @@remove_ -->
     <link href="/style.css" rel="stylesheet" type="text/css">
     <!-- @@_end_remove -->
-    <!-- @@style__app_main_style -->
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet" type="text/css">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css" rel="stylesheet" type="text/css">
+    <!-- @@style_ _app_main_style -->
 </head>
 
 <body>
 <!-- @@template__app_main_body__context__app_main -->
 <!-- @@import__app_main_body_ -->
+<div class="container">
 <div id="header">
     <div id="htext">
         Editing <b>index</b>
@@ -46,7 +49,7 @@
 </div>
 
 <div id="editor"></div>
-
+</div>
 <!-- @@template__app_main_scripts__context__app_main -->
 <!-- @@import__app_main_scripts_ -->
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
@@ -57,9 +60,10 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>
 <script src="//underscorejs.org/underscore-min.js"></script>
 <!--<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js"></script>-->
-<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js"></script>
+<script src="/lib/knockout/knockout.mapping-latest.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
+<script src="/lib/knockout/knockout-bootstrap.min.js"></script>
 <script src="/lib/markdown/markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-html.js" type="text/javascript" charset="utf-8"></script>
