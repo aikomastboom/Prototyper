@@ -29,7 +29,7 @@
         Editing <b>index</b>
         <strong data-bind="text: _keys().length"></strong>
         <div data-bind="visible: _getMode()">
-        mode: <strong data-bind="text: _getMode()"></strong> <!-- TODO: onclick select mode -->
+        mode: <strong data-bind="text: _getMode()"></strong>
         </div>
         <select data-bind="options: _availableModes(), optionsText: 'name', value: _selectedMode"></select>
         <div id="main">
@@ -60,6 +60,7 @@
 <script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
+<script src="/lib/markdown/markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-html.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
@@ -71,9 +72,9 @@
 <!--<script src="/channel/bcsocket.js"></script>-->
 <!--<script src="/socket.io/socket.io.js"></script>-->
 <!-- @@_end_remove -->
-<script src="/share/share.uncompressed.js"></script>
-<script src="/share/json.js"></script>
-<script src="/share/ace.js"></script>
+<script src="/lib/share/share.uncompressed.js"></script>
+<script src="/lib/share/json.js"></script>
+<script src="/lib/share/ace.js"></script>
 <!-- @@_end_import__app_main_scripts -->
 <!-- @@template__app_main_behaviour__context__app_main -->
 <!-- @@import__app_main_behaviour_ -->
