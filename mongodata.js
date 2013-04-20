@@ -16,6 +16,9 @@ module.exports = function (config) {
 					config.errors && console.log('ERR2 getMongoContent', err);
 					return callback(err);
 				}
+				if (!options.query){
+					return callback(new Error('Data not found ' + options.collection + '/ missing query'));
+				}
 				if (options.query._id && !(options.query._id instanceof Object)) {
 					try {
 						options.query._id = new ObjectID.createFromHexString(options.query._id);
@@ -38,6 +41,28 @@ module.exports = function (config) {
 		});
 	}
 
+	function ensureContent(options, callback) {
+		if (!options.query){
+			options.query = {
+				name: options.name
+			}
+		}
+		getMongoContent(options, function (err, result) {
+			if(err) {
+				if (/Data not found*/.test(err.message)) {
+					setMongoContent({name:options.name},options, function (err, result) {
+						if(err) {
+							return callback(err);
+						}
+						return callback(null,result);
+					})
+				} else {
+					return callback(err);
+				}
+			}
+			return callback(null,result);
+		})
+	}
 	function getMongoAttribute(options, callback) {
 		config.debug && console.log('getMongoAttribute options', options);
 		return getMongoContent(options, function (err, result) {
@@ -217,7 +242,8 @@ module.exports = function (config) {
 		getMongoAttribute: getMongoAttribute,
 		getMongoContent: getMongoContent,
 		setMongoAttribute: setMongoAttribute,
-		setMongoContent: setMongoContent
+		setMongoContent: setMongoContent,
+		ensureContent: ensureContent
 	};
 };
 
