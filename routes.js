@@ -276,7 +276,10 @@ module.exports = function (app, config) {
 				collection: req.params.collection,
 				ext: req.params.ext,
 				query: {name: req.params.name},
-				debug: req.query && req.query.hasOwnProperty('debug')
+				req: { query: req.query,
+					headers: req.headers
+				}
+//				debug: req.query && req.query.hasOwnProperty('debug')
 			};
 			mongodataInstance.getMongoContent(options, function (err, result) {
 				if (err) {
@@ -285,12 +288,19 @@ module.exports = function (app, config) {
 				if (result) {
 					var attribute_parts = options.query.name.split('.');
 					var attribute = attribute_parts[attribute_parts.length - 1];
-					var content = result[attribute];
-					if (content) {
+					var attribute_value = result[attribute];
+					if (attribute_value) {
 						options.name = attribute_parts[0];
-						//options.attribute=attribute;
-						config.debug && console.log('getPreviewContent content', content);
-						previewInstance.getPreviewHTML(options, content,
+						var preview_options = {
+							collection: options.collection,
+							name: options.name,
+							attribute: attribute,
+							query: {_id: result._id},
+							req: options.req
+						};
+
+						config.debug && console.log('getPreviewContent content', attribute_value);
+						previewInstance.getPreviewHTML(preview_options, attribute_value,
 							responder(options, res, next)
 						);
 					} else {
