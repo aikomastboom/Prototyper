@@ -5,7 +5,7 @@ var path = require('path');
 var fs = require('fs');
 
 
-module.exports = function (config, mongoInstance) {
+module.exports = function (config, mongoInstance, sharemodel) {
 
 	var import_leftovers_tag = 'import_leftovers__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 	var import_leftovers_regexp = new RegExp(helpers.marker_prefix + import_leftovers_tag + helpers.marker_postfix);
@@ -43,7 +43,22 @@ module.exports = function (config, mongoInstance) {
 
 							remainder = remainder.replace(leftover.regExp, "");
 							mongoInstance.setMongoAttribute(remainder, leftover.replacement, function (err, attribute_result) {
-								return cb(err, remainder);
+								if (err) {
+									config.errors && console.log('ERR importer.importer setMongoAttribute', err);
+									return cb(err);
+								}
+								var documentId = 'text:'+leftover.replacement.collection + ':' + parent_result._id+ ':' +  leftover.replacement.attribute;
+								console.log('1 removing documentID',documentId);
+
+								sharemodel.delete(documentId, function (err, result) {
+									if (err) {
+										config.errors && console.log('ERR importer.importer sharemodel.delete', documentId, err);
+										//return cb(err);
+									}
+
+									return cb(null, remainder);
+								})
+
 							})
 						})
 					} else {
@@ -80,6 +95,10 @@ module.exports = function (config, mongoInstance) {
 		 import__[collection]_[name]_[attribute]_
 		 _end_import__[collection]_[name]_[attribute]
 
+		 reservered for importing data:
+		 import__[collection]_[name]_json_
+		 _end_import__[collection]_[name]_json
+
 		 moves content between tags into /collection/name/attribute
 
 
@@ -108,15 +127,46 @@ module.exports = function (config, mongoInstance) {
 							config.errors && console.log('ERR importer.replaceMarkers ensureContent', err);
 							return callback(err);
 						}
-						context.query = { _id: parent_result._id };
-
-						mongoInstance.setMongoAttribute(remainder, context, function (err, attribute_result) {
+						function handleResult(err, db_result) {
 							var replacement = {
 								regExp: result,
 								value: ""
 							};
 							return callback(err, replacement);
-						});
+						}
+
+						if (context.attribute == "json") {
+							var data = null;
+							try {
+							data = JSON.parse(remainder);
+							} catch (err) {
+								config.errors && console.log('ERR importer.replaceMarkers JSON.parse(remainder)', remainder, err);
+								return callback(err);
+							}
+							if (data._id) {
+								delete data._id;
+							}
+							_.extend(parent_result, data);
+							mongoInstance.setMongoContent(parent_result, context, handleResult);
+						} else {
+							context.query = { _id: parent_result._id };
+
+							mongoInstance.setMongoAttribute(remainder, context, function (err, attribute_result) {
+								if (err) {
+									config.errors && console.log('ERR importer.importer setMongoAttribute', err);
+									return callback(err);
+								}
+								var documentId = 'text:'+context.collection + ':' + parent_result._id+ ':' +  context.attribute;
+								console.log('2 removing documentID',documentId);
+								sharemodel.delete(documentId, function (err, result) {
+									if (err) {
+										config.errors && console.log('ERR importer.importer sharemodel.delete', documentId, err);
+									}
+									handleResult(null, attribute_result);
+								})
+
+							});
+						}
 					})
 
 				});
@@ -154,12 +204,25 @@ module.exports = function (config, mongoInstance) {
 							context.query = { _id: parent_result._id };
 
 							mongoInstance.setMongoAttribute(remainder, context, function (err, attribute_result) {
-								// remove import_file marker from source
-								var replacement = {
-									regExp: result,
-									value: ""
-								};
-								return callback(err, replacement);
+								if (err) {
+									config.errors && console.log('ERR importer.importer setMongoAttribute', err);
+									return cb(err);
+								}
+								var documentId = 'text:'+context.collection + ':' + parent_result._id+ ':' +  context.attribute;
+								console.log('3 removing documentID',documentId);
+
+								sharemodel.delete(documentId, function (err, result) {
+									if (err) {
+										config.errors && console.log('ERR importer.importer sharemodel.delete', documentId, err);
+									}
+									// remove import_file marker from source
+									var replacement = {
+										regExp: result,
+										value: ""
+									};
+									return callback(null, replacement);
+								})
+
 							});
 						});
 					});
