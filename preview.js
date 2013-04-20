@@ -16,12 +16,14 @@ module.exports = function (config, mongodataInstance) {
 			'<link href="/content/{{collection}}/{{name}}/style.css" media="all" rel="stylesheet" type="text/css">\n' +
 			'{{/if}}';
 
-	var getPreviewHTML = function (content ,options, callback) {
+	var getPreviewHTML = function (content, options, callback) {
 		config.debug && console.log('getPreviewHTML', content);
-		var promises = replaceMarkers( content, content);
-		function handler( text, result) {
+		var promises = replaceMarkers(content, options);
+
+		function handler(text, result) {
 			return text.replace(result.regExp, result.replacement);
 		}
+
 		helpers.handTextManipulation(content,
 			promises,
 			handler,
@@ -32,22 +34,22 @@ module.exports = function (config, mongodataInstance) {
 	var replaceMarkers = function (html, options) {
 
 		/* markers:
-		 [type]_[collection]_[name]_[attribute]
+		 [type]__[collection]_[name]_[attribute]
 
 		 script   -> <script src="/content/collection/name/attribute.js"/>
 		 style    -> <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
 
 
-		 markdown_[collection]_[nameX]_[attribute]
+		 markdown__[collection]_[nameX]_[attribute]
 		 markdown -> parse /content/collection/name/attribute into html and include
 
-		 template_[collectionX]_[nameX]_[attributeX]_context_[collectionY]_[nameY]
+		 template__[collectionX]_[nameX]_[attributeX]__context__[collectionY]_[nameY]
 		 template -> put /content/collectionX/nameX/attributeX thru handlebars.. context=collectionY/nameY/attributeY and include
 
 		 remove_.*_end_remove
 		 remove_ -> removes markers and everything in between
 
-		 [type]_[collection]_[name]
+		 [type]__[collection]_[name]
 		 script   -> <script src="/content/collection/name.js"/>
 		 contains all type='script' attributes concatenated based on 'order'
 		 style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
@@ -55,8 +57,8 @@ module.exports = function (config, mongodataInstance) {
 		 */
 		var promises = [];
 
-		var script_tag = 'script_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var script_regexp = new RegExp(script_tag);
+		var script_tag = 'script__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var script_regexp = new RegExp(helpers.marker_prefix + script_tag + helpers.marker_postfix);
 		promises.push(
 			helpers.replace(html, script_tag, function (result, callback) {
 				var parts = script_regexp.exec(result);
@@ -71,8 +73,8 @@ module.exports = function (config, mongodataInstance) {
 				});
 			}));
 
-		var style_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var style_regexp = new RegExp(style_tag);
+		var style_tag = 'style__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var style_regexp = new RegExp(helpers.marker_prefix + style_tag + helpers.marker_postfix);
 		promises.push(
 			helpers.replace(html, style_tag, function (result, callback) {
 				var parts = style_regexp.exec(result);
@@ -87,15 +89,16 @@ module.exports = function (config, mongodataInstance) {
 				});
 			}));
 
-		var template_tag = 'template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var template_regexp = new RegExp(template_tag);
+		var template_tag = 'template__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)__context__([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var template_regexp = new RegExp(helpers.marker_prefix + template_tag + helpers.marker_postfix);
 		promises.push(
 			helpers.replace(html, template_tag, function (result, callback) {
 				var parts = template_regexp.exec(result);
 				var template = {
 					collection: parts[1],
 					name: parts[2],
-					attribute: parts[3]
+					attribute: parts[3],
+					query: { name: parts[2]}
 				};
 				var context = {
 					collection: parts[4],
@@ -105,18 +108,27 @@ module.exports = function (config, mongodataInstance) {
 				};
 				mongodataInstance.getMongoAttribute(template, function (err, attribute_result) {
 					if (err) {
+						config.errors && console.log('ERR template_tag getMongoAttribute', template, err);
 						return callback(err);
 					}
-					var template = Handlebars.compile(attribute_result[template.attribute]);
+					var compiled_template = null;
+					try {
+						compiled_template = Handlebars.compile(attribute_result[template.attribute]);
+					} catch (err) {
+						config.errors && console.log('ERR template_tag Handlebars.compile', template, err);
+						return callback(err);
+					}
 					mongodataInstance.getMongoContent(context, function (err, context_result) {
 						if (err) {
+							config.errors && console.log('ERR template_tag getMongoContent', context);
 							return callback(err);
 						}
-						var rendered = template(context_result);
+						var rendered = compiled_template(context_result);
 						config.debug && console.log('// recurse markers on rendered template');
 						context.query = {_id: context_result._id};
-						getPreviewHTML(context, rendered, function (err, preview_html) {
+						getPreviewHTML(rendered, context, function (err, preview_html) {
 							if (err) {
+								config.errors && console.log('ERR template_tag getPreviewHTML', err);
 								return callback(err);
 							}
 							return callback(null, {
@@ -128,8 +140,8 @@ module.exports = function (config, mongodataInstance) {
 				});
 			}));
 
-		var markdown_tag = 'markdown_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var markdown_regexp = new RegExp(markdown_tag);
+		var markdown_tag = 'markdown__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var markdown_regexp = new RegExp(helpers.marker_prefix + markdown_tag + helpers.marker_postfix);
 		promises.push(
 			helpers.replace(html, markdown_tag, function (result, callback) {
 				var parts = markdown_regexp.exec(result);
@@ -150,7 +162,7 @@ module.exports = function (config, mongodataInstance) {
 				});
 			}));
 
-		var remove_tag = 'remove_([\\w\\W]*)_end_remove';
+		var remove_tag = 'remove_([\\w\\W]*?)_end_remove';
 		//var remove_regexp = new RegExp(remove_tag);
 		promises.push(
 			helpers.replace(html, remove_tag, function (result, callback) {
