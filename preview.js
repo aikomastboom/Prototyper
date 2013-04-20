@@ -23,17 +23,17 @@ module.exports = function (config, mongodataInstance) {
 			'<script src="/content/{{collection}}/{{name}}/behaviour.js"></script>\n';
 
 	var getPreviewHTML = function (options, content, callback) {
-		config.debug && console.log('getPreviewHTML',content);
+		config.debug && console.log('getPreviewHTML', content);
 		var html = content;
 		var promises = replaceMarkers(options, html);
 		when.all(
 			promises,
-			function onSucces (results) {
-				console.log('getPreviewHTML replaceMakers results',results);
-				_.forEach(results, function (result) {
-					if (result) {
-						html = html.replaceAll(result.regExp, result.replacement);
-					}
+			function onSucces(all_results) {
+				console.log('getPreviewHTML replaceMakers results', all_results);
+				_.forEach(all_results, function (results) {
+					_.forEach(results, function (result) {
+						html = html.replace(result.regExp, result.replacement);
+					});
 				});
 				return callback(null, html);
 			},
@@ -50,110 +50,152 @@ module.exports = function (config, mongodataInstance) {
 
 		function replace(marker, getReplacement) {
 			var deferred = when.defer();
-			var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->');
-			var result = html.match(regExp);
-			if (result) {
-				getReplacement(result, function (err, replacement) {
-					if (err) {
+			var regExp = new RegExp('<!--\\s*@@' + marker + '\\s*-->', 'gmi');
+			var matches = html.match(regExp);
+			if (matches) {
+				var match_promisses = [];
+				_.forEach(matches, function (result) {
+					var deferred2 = when.defer();
+					match_promisses.push(deferred2.promise);
+					getReplacement(result, function (err, replacement) {
+						if (err) {
+							deferred2.reject(err);
+						} else {
+							deferred2.resolve({regExp: replacement.regExp || regExp, replacement: replacement.value})
+						}
+					})
+				});
+				when.all(
+					match_promisses,
+					function onSuccess(results) {
+						deferred.resolve(results);
+					},
+					function onFailure(err) {
 						deferred.reject(err);
-					} else {
-						deferred.resolve({regExp:regExp, replacement:replacement})
 					}
-				})
+				);
 			} else {
 				deferred.resolve();
 			}
 			return deferred.promise;
 		}
 
-		console.log('marker options',options);
+		console.log('marker options', options);
 		var promises = [];
 		/* markers:
-		    [type]_[collection]_[name]_[attribute]
+		 [type]_[collection]_[name]_[attribute]
 
-			script   -> <script src="/content/collection/name/attribute.js"/>
-			style    -> <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
+		 script   -> <script src="/content/collection/name/attribute.js"/>
+		 style    -> <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
 
 
-		 	markdown_[collection]_[nameX]_[attribute]
-		 	markdown -> parse /content/collection/name/attribute into html and include
+		 markdown_[collection]_[nameX]_[attribute]
+		 markdown -> parse /content/collection/name/attribute into html and include
 
-		 	template_[collectionX]_[nameX]_[attributeX]_context_[collectionY]_[nameY]
-			template -> put /content/collectionX/nameX/attributeX thru handlebars.. context=collectionY/nameY/attributeY and include
+		 template_[collectionX]_[nameX]_[attributeX]_context_[collectionY]_[nameY]
+		 template -> put /content/collectionX/nameX/attributeX thru handlebars.. context=collectionY/nameY/attributeY and include
 
-			remove_.*_end_remove
-			remove_ -> removes markers and everything in between
+		 remove_.*_end_remove
+		 remove_ -> removes markers and everything in between
 
-		    [type]_[collection]_[name]
-			script   -> <script src="/content/collection/name.js"/>
-				contains all type='script' attributes concatenated based on 'order'
-		 	style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
-			    contains all type='style' attributes concatenated based on 'order'
+		 [type]_[collection]_[name]
+		 script   -> <script src="/content/collection/name.js"/>
+		 contains all type='script' attributes concatenated based on 'order'
+		 style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
+		 contains all type='style' attributes concatenated based on 'order'
 		 */
+		var script_tag = 'script_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var script_regexp = new RegExp(script_tag);
 		promises.push(
-			replace('script_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
+			replace(script_tag, function (result, callback) {
+				var parts = script_regexp.exec(result);
 				var context = {
-					collection: result[0],
-					name: result[1],
-					attribute: result[2]
+					collection: parts[1],
+					name: parts[2],
+					attribute: parts[3]
 				};
-				return callback( null,
-					'<script src="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"/>\n'
-				);
-		}));
+				return callback(null, {
+					regExp: new RegExp(result, 'gmi'),
+					value: '<script src="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"/>\n'
+				});
+			}));
 
+		var style_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var style_regexp = new RegExp(style_tag);
 		promises.push(
-			replace('style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
-			var context = {
-				collection: result[0],
-				name: result[1],
-				attribute: result[2]
-			};
-			return callback( null,
-				'<link href="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">\n'
-			);
-		}));
+			replace(style_tag, function (result, callback) {
+				var parts = style_regexp.exec(result);
+				var context = {
+					collection: parts[1],
+					name: parts[2],
+					attribute: parts[3]
+				};
+				return callback(null, {
+					regExp: new RegExp(result, 'gmi'),
+					value: '<link href="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">\n'
+				});
+			}));
 
-
+		var template_tag = 'template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var template_regexp = new RegExp(template_tag);
 		promises.push(
-			replace('template_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_context_([A-Za-z0-9]+)_([A-Za-z0-9]+)',
-				function (result, callback) {
+			replace(template_tag, function (result, callback) {
+				var parts = template_regexp.exec(result);
 				var template = {
-					collection: result[0],
-					name: result[1],
-					attribute: result[2]
+					collection: parts[1],
+					name: parts[2],
+					attribute: parts[3]
 				};
 				var context = {
-					collection: result[3],
-					name: result[4]
+					collection: parts[4],
+					name: parts[5]
 				};
-				mongodataInstance.getMongoAttribute(template, function (err, result) {
+				mongodataInstance.getMongoAttribute(template, function (err, attribute_result) {
 					if (err) {
 						return callback(err);
 					}
-					var template = Handlebars.compile(result[options.attribute]);
-					mongodataInstance.getMongoContent(context, function (err, result) {
+					var template = Handlebars.compile(attribute_result[options.attribute]);
+					mongodataInstance.getMongoContent(context, function (err, context_result) {
 						if (err) {
 							return callback(err);
 						}
-						return callback(null, template(result));
+						return callback(null, {
+							regExp: new RegExp(result, 'gmi'),
+							value: template(context_result)
+						});
 					});
 				});
-		}));
+			}));
 
+		var markdown_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var markdown_regexp = new RegExp(markdown_tag);
 		promises.push(
 			replace('markdown_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)', function (result, callback) {
+				var parts = markdown_regexp.exec(result);
 				var attribute = {
-					collection: result[0],
-					name: result[1],
-					attribute: result[2]
+					collection: parts[1],
+					name: parts[2],
+					attribute: parts[3]
 				};
-				mongodataInstance.getMongoAttribute(attribute, function (err, result) {
+				mongodataInstance.getMongoAttribute(attribute, function (err, attribute_result) {
 					if (err) {
 						return callback(err);
 					}
-					var html = markdown.toHTML(result[options.attribute]);
-					return callback(null, html);
+					var html = markdown.toHTML(attribute_result[options.attribute]);
+					return callback(null, {
+						regExp: new RegExp(result, 'gmi'),
+						value: html
+					});
+				});
+			}));
+
+		var remove_tag = 'style_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		//var remove_regexp = new RegExp(remove_tag);
+		promises.push(
+			replace('remove_([\\w\\W]*)_end_remove', function (result, callback) {
+				return callback(null, {
+					regExp: null,
+					value: ""
 				});
 			}));
 
