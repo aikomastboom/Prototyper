@@ -1,7 +1,17 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- @@import__app_main_json_ -->
+{ "_availableModes" : [
+    { "name": "none", "ace":"none" },
+    { "name": "HTML", "ace":"html" },
+    { "name": "Style", "ace":"css" },
+    { "name": "Behaviour", "ace":"javascript" },
+    { "name": "Text", "ace":"markdown" },
+    { "name": "JSON", "ace":"json" }
+        ]
+}
+<!-- @@_end_import__app_main_json -->
 <!-- @@import_file__style.css__into__app_main_style -->
 <!-- @@import_leftovers__app_main_index -->
-<html>
+<!-- @@_end_remove --><html>
 <head>
     <title>app/main/index</title>
     <script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
@@ -19,8 +29,9 @@
         Editing <b>index</b>
         <strong data-bind="text: _keys().length"></strong>
         <div data-bind="visible: _getMode()">
-        mode: <strong data-bind="text: _getMode()"></strong>
+        mode: <strong data-bind="text: _getMode()"></strong> <!-- TODO: onclick select mode -->
         </div>
+        <select data-bind="options: _availableModes(), optionsText: 'name', value: _selectedMode"></select>
         <div id="main">
             <ul class="folders">
                 <!-- ko foreach: _keys() -->
@@ -54,6 +65,7 @@
 <script src="/lib/ace/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-css.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/ace/mode-json.js" type="text/javascript" charset="utf-8"></script>
 <script src="//cdn.sockjs.org/sockjs-0.3.min.js"></script>
 <!-- @@remove_ -->
 <!--<script src="/channel/bcsocket.js"></script>-->
@@ -71,31 +83,46 @@
     var aceMode = null;
     var session = editor.getSession();
     var viewModel = null;
+    var viewModel_updating = false;
     var doc = null;
     var mainDoc = null;
     editor.setReadOnly(true);
 
     var setMode = function(attribute, mode) {
         console.log('setmode', attribute, mode);
+        var ace_mode = mode;
+        if (!mode || mode == 'none') {
+            ace_mode = 'markdown';
+        }
         if (mainDoc.snapshot
                 && mainDoc.snapshot[attribute]) {
-            console.log('got attribute field');
-            if (mainDoc.snapshot[attribute].mode != mode) {
-                console.log('mode differs');
+            aceMode = require("ace/mode/"+ace_mode).Mode;
+            session.setMode(new aceMode());
+            var currentMode = mainDoc.snapshot[attribute].mode;
+            if (!currentMode) {
+                currentMode = 'none';
+            }
+            console.log('modes',currentMode, mode);
+
+
+            if (currentMode != mode) {
+                console.log('mode differs',currentMode, mode);
                 var op = [];
                 if (mainDoc.snapshot[attribute].mode) {
                     console.log('// remove');
                     op.push({
                         p:[attribute,'mode'],
-                        od:main.snapshot[attribute].mode
+                        od:mainDoc.snapshot[attribute].mode
 
                     })
                 }
-                console.log('//insert');
-                op.push({
-                    p:[attribute,'mode'],
-                    oi:mode
-                });
+                if (mode && mode != 'none') {
+                    console.log('//insert');
+                    op.push({
+                        p:[attribute,'mode'],
+                        oi:mode
+                    });
+                }
                 console.log('op',op);
                 mainDoc.submitOp(op, function (err, result) {
                     console.log('err', err, 'result', result);
@@ -105,22 +132,12 @@
     };
 
     var setDoc = function(attribute) {
-        var mode = 'markdown';
         editor.setReadOnly(true);
-        if (attribute == 'style') {
-            mode = 'css';
-        } else if (attribute == 'behaviour') {
-            mode = 'javascript';
-        } else if (attribute == 'index') {
-            mode = 'html';
-        }
-        mode = (mainDoc.snapshot
+        var mode = (mainDoc.snapshot
                 && mainDoc.snapshot[attribute]
                 && mainDoc.snapshot[attribute].mode
-                ) || mode;
-
-        aceMode = require("ace/mode/"+mode).Mode;
-        session.setMode(new aceMode());
+                ) || 'none';
+        console.log('setDoc mode',mode);
         setMode(attribute, mode);
         document.title = attribute;
 
@@ -159,15 +176,49 @@
                 });
     }
 
+    function getSelectedMode() {
+        var folder = viewModel._chosenFolderId();
+        if (!folder) {
+            return null;
+        }
+        var mode = _.filter(viewModel._availableModes(),
+                function (mode) {
+                    return viewModel[folder].mode && (mode.ace() == viewModel[folder].mode());
+                });
+        if (mode.length) {
+            return mode[0];
+        }else {
+            return null;
+        }
+    }
+
+    function updateSelectedMode() {
+        var selectedMode  = getSelectedMode();
+        if (selectedMode) {
+            var folder = viewModel._chosenFolderId();
+            if (folder) {
+                viewModel._selectedMode(viewModel[folder].mode
+                        && selectedMode);
+            }
+        }
+
+    }
+
+
     function initViewModel(doc) {
+        viewModel_updating = true;
         addComputed(doc);
         var snapshot = doc.snapshot;
         var viewModel = ko.mapping.fromJS(snapshot, mapping);
         viewModel._chosenFolderId = ko.observable();
         viewModel._newAttribute = ko.observable();
+        viewModel._selectedMode = ko.observable();
+
+
         // Behaviours
         viewModel._goToFolder = function(folder) {
             viewModel._chosenFolderId(folder);
+            updateSelectedMode();
             setDoc(folder);
         };
         viewModel._newAttribute.subscribe(function(newValue) {
@@ -184,16 +235,27 @@
             var id =  viewModel._chosenFolderId();
             return id && viewModel[id].mode;
         });
+        viewModel._selectedMode.subscribe(function (newValue) {
+            if( newValue && !viewModel_updating) {
+                console.log('_selectedMode, newValue',newValue.ace());
+                setMode(viewModel._chosenFolderId(), newValue.ace());
+            }
+        });
 
         ko.applyBindings(viewModel);
         window.viewModel=viewModel;
         console.log('viewModel', viewModel);
+        viewModel_updating = false;
     }
 
     function updateViewModel(doc) {
+        viewModel_updating = true;
         addComputed(doc);
         ko.mapping.fromJS(doc.snapshot,viewModel);
         console.log('updated viewModel', viewModel);
+        updateSelectedMode();
+        viewModel_updating = false;
+
     }
 
     sharejs.open('json:app:main','json', function (error, main) {
