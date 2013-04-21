@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- @@remove_ --><!-- @@import__app_main_json_ -->
+<!DOCTYPE html><!-- @@import__app_main_json_ -->
 { "_availableModes" : [
     { "name": "none", "ace":"none" },
     { "name": "HTML", "ace":"html" },
@@ -9,16 +9,19 @@
         ]
 }
 <!-- @@_end_import__app_main_json -->
-<!-- @@import_file__style.css__into__app_main_style -->
 <!-- @@import_file__../README.md__into__app_main_readme -->
-<!-- @@import_leftovers__app_main_index -->
-<!-- @@_end_remove --><html>
+<!-- @@import_leftovers__app_main_index --><html>
 <head>
+    <!-- @@import_file__templates/head.html__into__app_templates_head -->
+    <!-- @@template__app_templates_head__context__app_main -->
+    <!-- @@remove_ -->
     <title>app/main/index</title>
     <!--<script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>-->
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet" type="text/css">
     <!--<link href="//netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css" rel="stylesheet" type="text/css">-->
+    <!-- @@import_file__style.css__into__app_main_style -->
     <!-- @@style__app_main_style -->
+    <!-- @@_end_remove -->
     <!-- @@remove_ -->
     <link href="/style.css" rel="stylesheet" type="text/css">
     <!-- @@_end_remove -->
@@ -70,16 +73,12 @@
 <div id="editor"></div>
 </div>
 </div>
-<!-- @@template__app_main_scripts__context__app_main -->
-<!-- @@import__app_main_scripts_ -->
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<!-- @@import_file__templates/scripts.html__into__app_templates_scripts -->
+<!-- @@template__app_templates_scripts__context__app_main -->
 <!-- @@remove_ -->
-<!--<script src="//knockoutjs.com/downloads/knockout-2.2.1.debug.js"></script>-->
-<!--<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.0/knockout-min.js"></script>-->
-<!-- @@_end_remove -->
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>
 <script src="//underscorejs.org/underscore-min.js"></script>
-<!--<script src="//raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js"></script>-->
 <script src="/lib/knockout/knockout.mapping-latest.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
@@ -92,14 +91,10 @@
 <script src="/lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-json.js" type="text/javascript" charset="utf-8"></script>
 <script src="//cdn.sockjs.org/sockjs-0.3.min.js"></script>
-<!-- @@remove_ -->
-<!--<script src="/channel/bcsocket.js"></script>-->
-<!--<script src="/socket.io/socket.io.js"></script>-->
-<!-- @@_end_remove -->
 <script src="/lib/share/share.uncompressed.js"></script>
 <script src="/lib/share/json.js"></script>
 <script src="/lib/share/ace.js"></script>
-<!-- @@_end_import__app_main_scripts -->
+<!-- @@_end_remove -->
 <!-- @@template__app_main_behaviour__context__app_main -->
 <!-- @@import__app_main_behaviour_ -->
 <script>
@@ -164,7 +159,7 @@
                 ) || 'none';
         console.log('setDoc mode',mode);
         setMode(attribute, mode);
-        document.title = attribute;
+        //document.title = attribute;
 
         var docName='text:app:'+viewModel._id()+':'+attribute;
 
@@ -286,7 +281,6 @@
     }
 
     sharejs.open('json:app:main','json', function (error, main) {
-        var indexField = null;
         if (error) {
             console.log('error opening app:main:json', error, main);
         } else {
