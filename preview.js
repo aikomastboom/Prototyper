@@ -33,28 +33,6 @@ module.exports = function (config, mongodataInstance) {
 
 	var replaceMarkers = function (html, options) {
 
-		/* markers:
-		 [type]__[collection]_[name]_[attribute]
-
-		 script   -> <script src="/content/collection/name/attribute.js"/>
-		 style    -> <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
-
-
-		 markdown__[collection]_[nameX]_[attribute]
-		 markdown -> parse /content/collection/name/attribute into html and include
-
-		 template__[collectionX]_[nameX]_[attributeX]__context__[collectionY]_[nameY]
-		 template -> put /content/collectionX/nameX/attributeX thru handlebars.. context=collectionY/nameY/attributeY and include
-
-		 remove_.*_end_remove
-		 remove_ -> removes markers and everything in between
-
-		 [type]__[collection]_[name]
-		 script   -> <script src="/content/collection/name.js"/>
-		 contains all type='script' attributes concatenated based on 'order'
-		 style    -> <link href="/content/collection/name.css" media="all" rel="stylesheet" type="text/css">
-		 contains all type='style' attributes concatenated based on 'order'
-		 */
 		var promises = [];
 
 		var script_tag = 'script__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
