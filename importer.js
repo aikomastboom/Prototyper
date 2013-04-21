@@ -62,7 +62,7 @@ module.exports = function (config, mongoInstance, sharemodel) {
 							})
 						})
 					} else {
-						console.log('no import_leftover tag found');
+						config.debug && console.log('no import_leftover tag found');
 						return cb(null, remainder);
 					}
 				});
@@ -91,21 +91,6 @@ module.exports = function (config, mongoInstance, sharemodel) {
 
 	var replaceMarkers = function (doc, options) {
 		var promises = [];
-		/* markers:
-		 import__[collection]_[name]_[attribute]_
-		 _end_import__[collection]_[name]_[attribute]
-
-		 reservered for importing data:
-		 import__[collection]_[name]_json_
-		 _end_import__[collection]_[name]_json
-
-		 moves content between tags into /collection/name/attribute
-
-
-		 import_file__[filename]__into__[collection]_[name]_[attribute]
-
-		 read filename into /collection/name/attribute and process it.
-		 */
 		var import_tag = 'import__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([\\w\\W]*)_end_import__\\1_\\2_\\3';
 		var import_regexp = new RegExp(helpers.marker_prefix + import_tag + helpers.marker_postfix);
 		var import_strip_regexp = new RegExp(helpers.marker_postfix + '([\\w\\W]*)' + helpers.marker_prefix);
@@ -173,7 +158,7 @@ module.exports = function (config, mongoInstance, sharemodel) {
 			})
 		);
 
-		var import_file_tag = 'import_file__([A-Za-z0-9.]+)__into__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var import_file_tag = 'import_file__([A-Za-z0-9.\/]+)__into__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var import_file_regexp = new RegExp(helpers.marker_prefix + import_file_tag + helpers.marker_postfix);
 
 		promises.push(

@@ -215,7 +215,7 @@ module.exports = function (app, config) {
 			config.debug && console.log('running timer', documentId);
 			var data = args.current;
 			if (args.options.type == 'json') {
-				data = JSON.stringify(args.current);
+				data = JSON.parse(args.current);
 			}
 			mongodataInstance.setMongoAttribute(data, args.options,
 				handleMongoAttributeSetResult(args.options, data,
