@@ -20,10 +20,10 @@ body {
 }
 
 #htext {
-    line-height: 30px;
-    vertical-align: middle;
+    /*line-height: 30px;*/
+    /*vertical-align: middle;*/
 
-    padding-left: 10px;
+    /*padding-left: 10px;*/
     color: white;
     font-family: baskerville, palatino, 'palatino linotype', georgia, serif;
 }
@@ -32,15 +32,27 @@ body {
     display: inline;
 }
 
-#editor {
-    margin: 0;
-    position: absolute;
-    top: 100px;
-    bottom: 0;
-    left: 0;
-    right: 0;
+#content {
+    position: fixed;
+    top:100px;
+    width: 100%;
+    bottom: 0px;
 }
 
+#editor {
+    margin: 0px;
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 370px;
+    right: 0px;
+}
+
+#tree {
+    left:0px;
+    right:370px;
+    /*bottom: 0px;*/
+}
 #htext a {
     color: #aaf;
     font-weight: bold;

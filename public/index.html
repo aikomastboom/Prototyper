@@ -10,6 +10,7 @@
 }
 <!-- @@_end_import__app_main_json -->
 <!-- @@import_file__style.css__into__app_main_style -->
+<!-- @@import_file__../README.md__into__app_main_readme -->
 <!-- @@import_leftovers__app_main_index -->
 <!-- @@_end_remove --><html>
 <head>
@@ -20,13 +21,12 @@
     <!-- @@_end_remove -->
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet" type="text/css">
     <link href="//netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css" rel="stylesheet" type="text/css">
-    <!-- @@style_ _app_main_style -->
+    <!-- @@style__app_main_style -->
 </head>
 
 <body>
 <!-- @@template__app_main_body__context__app_main -->
 <!-- @@import__app_main_body_ -->
-<div class="container">
 <div id="header">
     <div id="htext">
         Editing <b>index</b>
@@ -47,8 +47,16 @@
         </div>
     </div>
 </div>
-
+<div id="content">
+<div id="tree">
+    <ul>
+    <li>
+        <span data-bind="text: name"></span>
+        <!--<ul data-bind="template: { name: 'nodeTmpl', foreach: nodes }"></ul>-->
+    </li></ul>
+</div>
 <div id="editor"></div>
+</div>
 </div>
 <!-- @@template__app_main_scripts__context__app_main -->
 <!-- @@import__app_main_scripts_ -->
