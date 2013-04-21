@@ -319,7 +319,7 @@ module.exports = function (app, config) {
 	var importerInstance = importer(config, mongodataInstance, model);
 
 	app.get('/importer/:filename', function importFile(req, res, next) {
-		var filename = path.resolve(config.public_path, req.params.filename);
+		var filename = path.resolve(config.importer_path, req.params.filename);
 		config.debug && console.log('/importer/:filename', filename);
 		fs.readFile(filename, 'utf-8', function (err, sub_doc) {
 			if (err) {

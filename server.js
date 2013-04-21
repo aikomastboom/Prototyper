@@ -23,6 +23,7 @@ var config = {
 		staticpath: '/lib/share',
 		db: {type: 'none'}
 	},
+	importer_path: __dirname + '/public',
 	public_path: __dirname + '/public',
 	markdown_client: __dirname + '/node_modules/markdown/lib',
 	ace_client: __dirname + '/node_modules/share/examples/lib/ace'

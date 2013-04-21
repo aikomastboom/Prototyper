@@ -164,7 +164,7 @@ module.exports = function (config, mongoInstance, sharemodel) {
 		promises.push(
 			helpers.replace(doc, import_file_tag, function (result, callback) {
 				var parts = import_file_regexp.exec(result);
-				var filename = path.resolve(config.public_path, parts[1]);
+				var filename = path.resolve(config.importer_path, parts[1]);
 				var context = {
 					collection: parts[2],
 					name: parts[3],
