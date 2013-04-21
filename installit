@@ -11,6 +11,11 @@ mkdir -p ./public/lib/knockout
 if [ ! -f ./public/lib/knockout/knockout.mapping-latest.js ]; then
   cd ./public/lib/knockout
   curl -O https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js
+  cd ${current_dir}
+fi
+
+if [ ! -f ./public/lib/knockout/knockout-bootstrap.min.js ]; then
+  cd ./public/lib/knockout
   curl -O https://raw.github.com/billpull/knockout-bootstrap/master/build/knockout-bootstrap.min.js
   cd ${current_dir}
 fi
