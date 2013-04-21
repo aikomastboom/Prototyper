@@ -2,6 +2,9 @@ body {
     overflow: hidden;
 }
 
+.container {
+    width: 100%
+}
 .ace_bold {
     font-weight: bold;
 }
@@ -14,16 +17,13 @@ body {
     position: fixed;
     top: 0;
     right: 0;
-    height: 100px;
+    height: 200px;
     width: 100%;
     background-color: black;
 }
 
 #htext {
-    /*line-height: 30px;*/
-    /*vertical-align: middle;*/
-
-    /*padding-left: 10px;*/
+    padding-left: 20px;
     color: white;
     font-family: baskerville, palatino, 'palatino linotype', georgia, serif;
 }
@@ -34,22 +34,22 @@ body {
 
 #content {
     position: fixed;
-    top:100px;
+    top:200px;
     width: 100%;
-    bottom: 0px;
+    bottom: 0;
 }
 
 #editor {
-    margin: 0px;
+    margin: 0;
     position: absolute;
-    top: 0px;
-    bottom: 0px;
+    top: 0;
+    bottom: 0;
     left: 370px;
-    right: 0px;
+    right: 0;
 }
 
 #tree {
-    left:0px;
+    left:0;
     right:370px;
     /*bottom: 0px;*/
 }
@@ -57,52 +57,4 @@ body {
     color: #aaf;
     font-weight: bold;
 }
-
-.folders {
-    background-color: #bbb;
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    border-radius: 7px;
-    background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #d6d6d6), color-stop(0.4, #c0c0c0), color-stop(1, #a4a4a4));
-    margin: 10px 0 16px 0;
-    font-size: 0px;
-}
-
-.folders li:hover {
-    background-color: #ddd;
-}
-
-.folders li:first-child {
-    border-left: none;
-    border-radius: 7px 0 0 7px;
-}
-
-.folders li {
-    font-size: 16px;
-    font-weight: bold;
-    display: inline-block;
-    padding: 0.5em 1.5em;
-    cursor: pointer;
-    color: #444;
-    text-shadow: #f7f7f7 0 1px 1px;
-    border-left: 1px solid #ddd;
-    border-right: 1px solid #888;
-}
-
-.folders li {
-    *display: inline !important;
-}
-
-/* IE7 only */
-.folders .selected {
-    background-color: #444 !important;
-    color: white;
-    text-shadow: none;
-    border-right-color: #aaa;
-    border-left: none;
-    box-shadow: inset 1px 2px 6px #070707;
-}
-
-
 
