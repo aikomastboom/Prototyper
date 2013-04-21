@@ -191,7 +191,7 @@ module.exports = function (config, mongoInstance, sharemodel) {
 							mongoInstance.setMongoAttribute(remainder, context, function (err, attribute_result) {
 								if (err) {
 									config.errors && console.log('ERR importer.importer setMongoAttribute', err);
-									return cb(err);
+									return callback(err);
 								}
 								var documentId = 'text:'+context.collection + ':' + parent_result._id+ ':' +  context.attribute;
 								console.log('3 removing documentID',documentId);
