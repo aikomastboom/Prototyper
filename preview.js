@@ -84,36 +84,93 @@ module.exports = function (config, mongodataInstance) {
 					query: { name: parts[5]},
 					req: options.req
 				};
-				mongodataInstance.getMongoAttribute(template, function (err, attribute_result) {
+				mongodataInstance.getMongoContent(context, function (err, context_result) {
 					if (err) {
-						config.errors && console.log('ERR template_tag getMongoAttribute', template, err);
+						config.errors && console.log('ERR template_tag getMongoContent', context);
 						return callback(err);
 					}
-					var compiled_template = null;
-					try {
-						compiled_template = Handlebars.compile(attribute_result[template.attribute]);
-					} catch (err) {
-						config.errors && console.log('ERR template_tag Handlebars.compile', template, err);
-						return callback(err);
-					}
-					mongodataInstance.getMongoContent(context, function (err, context_result) {
+					mongodataInstance.getMongoAttribute(template, function (err, attribute_result) {
 						if (err) {
-							config.errors && console.log('ERR template_tag getMongoContent', context);
+							config.errors && console.log('ERR template_tag getMongoAttribute', template, err);
 							return callback(err);
 						}
-						var rendered = compiled_template(context_result);
-						config.debug && console.log('// recurse markers on rendered template');
-						context.query = {_id: context_result._id};
-						getPreviewHTML(rendered, context, function (err, preview_html) {
-							if (err) {
-								config.errors && console.log('ERR template_tag getPreviewHTML', err);
+						var compiled_template = null;
+						var keys_to_collect = {};
+						// Handlebars is synchronous ouch !!
+						var handlebars = Handlebars.create();
+						_.forEach(_.keys(context_result), function (key) {
+							handlebars.registerHelper(key, function (key_context, key_options) {
+								if (context_result[key].guid) {
+									if (keys_to_collect.hasOwnProperty(key)) {
+										return keys_to_collect[key];
+									} else {
+										keys_to_collect[key] = null;
+										return "";
+									}
+								}
+								return "";
+							});
+						});
+						try {
+							compiled_template = handlebars.compile(attribute_result[template.attribute]);
+						} catch (err) {
+							config.errors && console.log('ERR template_tag Handlebars.compile', template, err);
+							return callback(err);
+						}
+						try {
+							var tmp_rendered = compiled_template(context_result);
+						} catch (err) {
+							config.errors && console.log('ERR template_tag Handlebars.render', template, context, err);
+							return callback(err);
+						}
+						var promises = [];
+						_.forEach(_.keys(keys_to_collect), function (key) {
+							var deferred = when.defer();
+							var promise = deferred.promise;
+							promises.push(promise);
+							var attribute_context = {
+								collection: context.collection,
+								attribute: key,
+								query: { _id: context_result._id}
+							};
+							mongodataInstance.getMongoAttribute(attribute_context, function (err, template_attribute_result) {
+								if (err) {
+									config.errors && console.log('ERR handlebar.registerHelper getMongoAttribute', err);
+									deferred.reject(err);
+								}
+								var value = template_attribute_result[key];
+								keys_to_collect[key] = value;
+								deferred.resolve(value);
+							});
+						});
+						when.all(
+							promises,
+							function onSuccess(values) {
+								var rendered = null;
+								try {
+									rendered = compiled_template(context_result);
+								} catch (err) {
+									config.errors && console.log('ERR template_tag Handlebars.render', template, context, err);
+									return callback(err);
+								}
+								config.debug && console.log('// recurse markers on rendered template');
+								context.query = {_id: context_result._id};
+								getPreviewHTML(rendered, context, function (err, preview_html) {
+									if (err) {
+										config.errors && console.log('ERR template_tag getPreviewHTML', err);
+										return callback(err);
+									}
+									return callback(null, {
+										regExp: new RegExp(result, 'gmi'),
+										value: preview_html
+									});
+								});
+							},
+							function onFailure(err) {
+								config.errors && console.log('ERR template_tag resolving promises', err);
 								return callback(err);
 							}
-							return callback(null, {
-								regExp: new RegExp(result, 'gmi'),
-								value: preview_html
-							});
-						})
+						)
 					});
 				});
 			}));
