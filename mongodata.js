@@ -4,6 +4,11 @@ var ObjectID = require('mongodb').ObjectID;
 
 module.exports = function (config) {
 
+	/*
+		options:
+			collection (mandatory)
+			query (mandatory)
+	*/
 	function getMongoContent(options, callback) {
 		config.debug && console.log('getMongoContent options', options);
 		MongoClient.connect(config.mongo.server, config.mongo.options, function (err, db) {
@@ -16,7 +21,7 @@ module.exports = function (config) {
 					config.errors && console.log('ERR2 getMongoContent', err);
 					return callback(err);
 				}
-				if (!options.query){
+				if (!options.query) {
 					return callback(new Error('Data not found ' + options.collection + '/ missing query'));
 				}
 				if (options.query._id && !(options.query._id instanceof Object)) {
@@ -41,28 +46,49 @@ module.exports = function (config) {
 		});
 	}
 
+	var ensuring = false;
+
 	function ensureContent(options, callback) {
-		if (!options.query){
+		if (!options.query) {
 			options.query = {
 				name: options.name
 			}
 		}
 		getMongoContent(options, function (err, result) {
-			if(err) {
+			if (err) {
 				if (/Data not found*/.test(err.message)) {
-					setMongoContent({name:options.name},options, function (err, result) {
-						if(err) {
-							return callback(err);
-						}
-						return callback(null,result);
-					})
+					if (ensuring) {
+						setImmediate(function () {
+							console.log('Ensuring, rescheduling', options);
+							return ensureContent(options, callback);
+						});
+					} else {
+						ensuring = true;
+						setMongoContent({name: options.name}, options, function (err, result) {
+							console.log('Created Object, stop ensuring', options);
+							ensuring = false;
+							if (err) {
+								return callback(err);
+							}
+							return callback(null, result);
+						})
+					}
 				} else {
 					return callback(err);
 				}
+			} else {
+				return callback(null, result);
 			}
-			return callback(null,result);
-		})
+		});
 	}
+
+	/*
+	 options:
+		 collection (mandatory)
+		 query (mandatory)
+		 attribute (mandatory)
+		 type [json|text] : returns {} or "" when not found.
+	 */
 	function getMongoAttribute(options, callback) {
 		config.debug && console.log('getMongoAttribute options', options);
 		return getMongoContent(options, function (err, result) {
@@ -74,8 +100,7 @@ module.exports = function (config) {
 			config.debug && console.log('getMongoAttribute result', result);
 			if (result
 				&& result.hasOwnProperty(options.attribute)
-				&& result[options.attribute].guid)
-				{
+				&& result[options.attribute].guid) {
 				attribute_options = {
 					collection: options.collection,
 					query: {_id: result[options.attribute].guid}
@@ -155,12 +180,17 @@ module.exports = function (config) {
 				if (!data._id) {
 					config.debug && console.log('setMongoContent lookup by query', options.query);
 					col.findOne(options.query, function (err, result) {
+						if (err) {
+							config.errors && console.log('ERR3 setMongoContent', err);
+							return callback(err);
+						}
 						if (result) {
 							data._id = result._id;
 						}
 						return saveData(col, data, callback);
 					})
 				} else {
+					//TODO: merge data with latest db version
 					return saveData(col, data, callback);
 				}
 			});
@@ -178,8 +208,7 @@ module.exports = function (config) {
 				collection: options.collection
 			};
 			if (result.hasOwnProperty(options.attribute)
-				&& result[options.attribute].guid)
-			{
+				&& result[options.attribute].guid) {
 				config.debug && console.log('getMongoAttribute parent found, get child and save');
 				attribute_options.query = {_id: result[options.attribute].guid};
 				getMongoContent(attribute_options, function (err, attribute_result, col) {
@@ -215,6 +244,7 @@ module.exports = function (config) {
 						return saveData(col, result, callback);
 
 					} else {
+						// TODO: it happens that another callstack is doing the same thing.
 						config.debug && console.log('getMongoAttribute field does not exist yet. need to create doc first.');
 						var attribute_data = {
 							name: result.name + '.' + options.attribute,
