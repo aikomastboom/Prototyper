@@ -11,6 +11,10 @@ var config = {
 	mongo: {
 		server: "mongodb://silo01.local:27017/Prototyper",
 		options: {
+			db: {
+				native_parser: true,
+				fsync: true
+			},
 			server: {
 				maxPoolSize: 10,
 				auto_reconnect: true
