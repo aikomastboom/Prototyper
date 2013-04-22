@@ -43,8 +43,11 @@ var config = {
 
 var app = express();
 config.debug && app.use(connect.logger());
+//noinspection JSUnresolvedFunction
 app.use(express.static(config.statics.public_path));
+//noinspection JSUnresolvedFunction
 app.use('/lib/markdown', express.static(config.statics.markdown_client));
+//noinspection JSUnresolvedFunction
 app.use('/lib/ace', express.static(config.statics.ace_client));
 
 
