@@ -174,13 +174,14 @@ module.exports = function (config, mongoDataInstance) {
 				var attribute = {
 					collection: parts[1],
 					name: parts[2],
-					attribute: parts[3]
+					attribute: parts[3],
+					query: { name: parts[2] }
 				};
 				return mongoDataInstance.getMongoAttribute(attribute, function handleMarkdownContent(err, markdown_result) {
 					if (err) {
 						return callback(err);
 					}
-					var html = markdown.toHTML(markdown_result[options.attribute]);
+					var html = markdown.toHTML(markdown_result[attribute.attribute]);
 					return callback(null, {
 						regExp: new RegExp(result, 'gmi'),
 						value: html

@@ -1,6 +1,7 @@
 var mimetypes = {
 	'js': 'application/javascript',
 	'html': 'text/html',
+	'md': 'text/html',
 	'text': 'text/plain',
 	'css': 'text/css',
 	'less': 'text/css'
@@ -21,7 +22,7 @@ module.exports = function (options, res, next) {
 			if (/Data not found*/.test(err.message)) {
 				res.status(404);
 			}
-			return next(err.message);
+			return next(JSON.stringify(	err));
 		}
 		var contentType = getMimeType(options.ext);
 		res.setHeader('Content-Type', contentType);
