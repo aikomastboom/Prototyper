@@ -6,15 +6,16 @@ Change the mongo url to your mongodb
 
     npm start
 
-    http://localhost:8000/index.html
+[/index.html](http://localhost:8000/index.html)
 
 Import content defined in index.html into db:
 
-    http://localhost:8000/importer/index.html
+[/importer/index.html](http://localhost:8000/importer/index.html)
+
 
 Dogfood viewing of index.html from db:
 
-    http://localhost:8000/page/app/main.index.html
+[/page/app/main.index.html](http://localhost:8000/page/app/main.index.html)
 
 
 # Features:

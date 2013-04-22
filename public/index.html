@@ -55,6 +55,7 @@
                     </div>
                     <!-- /ko -->
                 </div>
+                <button class="btn pull-right" title="preview" data-bind="enable: $root._chosenAttributeId, click: $root._previewAttribute"><i class="icon-eye-open"></i></button>
                 <!--<ul class="nav pull-right"><li>-->
                 <div class="nav navbar-form pull-right">
                     <input type="text" class="span2"
@@ -198,8 +199,20 @@ function addComputed(doc) {
             });
 }
 
+function getExtensionForAttribute(attribute) {
+    var mode = getModeForAttribute(attribute);
+    if (mode && mode.ace() == 'markdown') {
+        return '.md';
+    } else {
+        return '.html';
+    }
+}
+
 function getModeForChosenAttribute() {
     var attribute = viewModel._chosenAttributeId();
+    return getModeForAttribute(attribute)
+}
+function getModeForAttribute(attribute) {
     if (!attribute) {
         return null;
     }
@@ -226,6 +239,10 @@ function updateSelectedMode() {
     }
 }
 
+function open_in_new_tab(url) {
+    var win = window.open(url, '_blank');
+    win.focus();
+}
 
 function initViewModel(doc) {
     viewModel_updating = true;
@@ -253,6 +270,16 @@ function initViewModel(doc) {
             })
         }
     });
+
+    viewModel._previewAttribute = function () {
+        var id = viewModel._chosenAttributeId();
+        if (id) {
+            var ext = getExtensionForAttribute(id);
+            var url = '/page/app/main.'+id+ext;
+            open_in_new_tab(url);
+        }
+
+    }
     viewModel._getMode = ko.computed(function () {
         var id = viewModel._chosenAttributeId();
         return id && viewModel[id].mode;

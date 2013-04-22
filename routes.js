@@ -282,10 +282,10 @@ module.exports = function (app, db, config) {
 
 	var previewInstance = preview(config, mongoDataInstance);
 
-	route = config.api.preview + '/:collection/:name.:ext(html)';
+	route = config.api.preview + '/:collection/:name.:ext(html|md)';
 	app.get(route,
 		function getPreviewContent(req, res, next) {
-			config.debug && console.log('/page/:collection/:name.:ext(html)');
+			config.debug && console.log('/page/:collection/:name.:ext(html|md)');
 			var options = {
 				collection: req.params.collection,
 				ext: req.params.ext,
@@ -294,7 +294,16 @@ module.exports = function (app, db, config) {
 					headers: req.headers
 				}
 			};
-			mongoDataInstance.getMongoContent(options, function handleResult(err, result) {
+			if(options.ext == 'md') {
+				var attribute_parts = options.query.name.split('.');
+				var markdownTag='markdown__'+options.collection+'_'+attribute_parts[0]+'_'+attribute_parts[1];
+				//var markdownDocument=helpers.marker_prefix + markdownTag + helpers.marker_postfix;
+				var markdownDocument='<!-- @@' + markdownTag + ' -->';
+				return previewInstance.getPreviewHTML(markdownDocument, { req:options.req },
+					responder(options, res, next)
+				);
+			}
+			return mongoDataInstance.getMongoContent(options, function handleResult(err, result) {
 				if (err) {
 					return responder(options, res, next)(err, result);
 				}
