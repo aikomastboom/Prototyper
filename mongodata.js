@@ -1,47 +1,40 @@
-var MongoClient = require('mongodb').MongoClient;
 var ObjectID = require('mongodb').ObjectID;
 
 
-module.exports = function (config) {
+module.exports = function (db, config) {
 
 	/*
-		options:
-			collection (mandatory)
-			query (mandatory)
-	*/
+	 options:
+	 *	collection (mandatory)
+	 *	query (mandatory)
+	 */
 	function getMongoContent(options, callback) {
 		config.debug && console.log('getMongoContent options', options);
-		MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
+		return db.collection(options.collection, function collection(err, col) {
 			if (err) {
-				config.errors && console.log('ERR1 getMongoContent', err);
+				config.errors && console.log('ERR2 getMongoContent', err);
 				return callback(err);
 			}
-			return db.collection(options.collection, function collection(err, col) {
-				if (err) {
-					config.errors && console.log('ERR2 getMongoContent', err);
+			if (!options.query) {
+				return callback(new Error('Data not found ' + options.collection + '/ missing query'));
+			}
+			if (options.query._id && !(options.query._id instanceof Object)) {
+				try {
+					options.query._id = new ObjectID.createFromHexString(options.query._id);
+				} catch (err) {
+					config.errors && console.log('ERR3 getMongoContent', err);
 					return callback(err);
 				}
-				if (!options.query) {
-					return callback(new Error('Data not found ' + options.collection + '/ missing query'));
+			}
+			return col.findOne(options.query, function foundOne(err, result) {
+				if (err) {
+					config.errors && console.log('ERR4 getMongoContent', err);
+					return callback(err);
 				}
-				if (options.query._id && !(options.query._id instanceof Object)) {
-					try {
-						options.query._id = new ObjectID.createFromHexString(options.query._id);
-					} catch (err) {
-						config.errors && console.log('ERR3 getMongoContent', err);
-						return callback(err);
-					}
+				if (!result) {
+					return callback(new Error('Data not found ' + options.collection + '/' + JSON.stringify(options.query)));
 				}
-				return col.findOne(options.query, function foundOne(err, result) {
-					if (err) {
-						config.errors && console.log('ERR4 getMongoContent', err);
-						return callback(err);
-					}
-					if (!result) {
-						return callback(new Error('Data not found ' + options.collection + '/' + JSON.stringify(options.query)));
-					}
-					return callback(null, result, col);
-				});
+				return callback(null, result, col);
 			});
 		});
 	}
@@ -89,10 +82,10 @@ module.exports = function (config) {
 
 	/*
 	 options:
-		 collection (mandatory)
-		 query (mandatory)
-		 attribute (mandatory)
-		 type [json|text] : returns {} or "" when not found.
+	 *	collection (mandatory)
+	 *	query (mandatory)
+	 *	attribute (mandatory)
+	 *	type [json|text] : returns {} or "" when not found.
 	 */
 	function getMongoAttribute(options, callback) {
 		config.debug && console.log('getMongoAttribute options', options);
@@ -169,35 +162,29 @@ module.exports = function (config) {
 
 	function setMongoContent(data, options, callback) {
 		config.debug && console.log('setMongoContent options', options);
-		MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
+		return db.collection(options.collection, function collection(err, col) {
 			if (err) {
-				config.errors && console.log('ERR1 setMongoContent', err);
+				config.errors && console.log('ERR2 setMongoContent', err);
 				return callback(err);
 			}
-			return db.collection(options.collection, function collection(err, col) {
-				if (err) {
-					config.errors && console.log('ERR2 setMongoContent', err);
-					return callback(err);
-				}
-				if (options.operation) {
-					data.version = options.operation.v;
-				}
-				if (!data._id) {
-					config.debug && console.log('setMongoContent lookup by query', options.query);
-					return col.findOne(options.query, function foundOne(err, result) {
-						if (err) {
-							config.errors && console.log('ERR3 setMongoContent', err);
-							return callback(err);
-						}
-						if (result) {
-							data._id = result._id;
-						}
-						return saveData(col, data, callback);
-					})
-				} else {
+			if (options.operation) {
+				data.version = options.operation.v;
+			}
+			if (!data._id) {
+				config.debug && console.log('setMongoContent lookup by query', options.query);
+				return col.findOne(options.query, function foundOne(err, result) {
+					if (err) {
+						config.errors && console.log('ERR3 setMongoContent', err);
+						return callback(err);
+					}
+					if (result) {
+						data._id = result._id;
+					}
 					return saveData(col, data, callback);
-				}
-			});
+				})
+			} else {
+				return saveData(col, data, callback);
+			}
 		});
 	}
 

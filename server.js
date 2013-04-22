@@ -1,6 +1,7 @@
 var connect = require('connect');
 var express = require('express');
-var instance = require('./routes.js');
+var MongoClient = require('mongodb').MongoClient;
+var addRoutes = require('./routes.js');
 
 process.title = "Prototyper";
 
@@ -50,15 +51,21 @@ app.use('/lib/markdown', express.static(config.statics.markdown_client));
 //noinspection JSUnresolvedFunction
 app.use('/lib/ace', express.static(config.statics.ace_client));
 
-
-var server = instance(app, config);
-
-server.listen(config.port, function handleServerResult(err) {
+MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
 	if (err) {
-		app.stop();
-		console.log('Server error', err);
+		config.errors && console.log('ERR connection to database', err);
 		return process.exit(1);
 	}
-	config.debug && console.log('routes', app.routes);
-	return console.log('Server running at http://127.0.0.1:', config.port);
+	var server = addRoutes(app, db, config);
+	return server.listen(config.port, function handleServerResult(err) {
+		if (err) {
+			app.stop();
+			console.log('Server error', err);
+			return process.exit(1);
+		}
+		config.debug && console.log('routes', app.routes);
+		return console.log('Server running at http://127.0.0.1:', config.port);
+	});
 });
+
+

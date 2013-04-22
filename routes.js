@@ -7,13 +7,13 @@ var importer = require('./importer.js');
 var path = require('path');
 var fs = require('fs');
 
-module.exports = function (app, config) {
+module.exports = function (app, db, config) {
 
 	// share wraps express app with http.Server
 	var server = ShareJS.server.attach(app, config.share);
 	var model = app.model;
 
-	var mongoDataInstance = mongoData(config);
+	var mongoDataInstance = mongoData(db, config);
 	var route;
 	route = config.api.data + '/:collection/:guid/:attribute.:ext(css|less|js|html)';
 	app.get(route,
