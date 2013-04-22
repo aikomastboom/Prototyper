@@ -15,9 +15,9 @@ var getMimeType = function (ext) {
 };
 
 module.exports = function (options, res, next) {
-	var responder = function (err, result) {
+	return function responder(err, result) {
 		if (err) {
-			console.log('ERR responder', options, err)	;
+			console.log('ERR responder', options, err);
 			if (/Data not found*/.test(err.message)) {
 				res.status(404);
 			}
@@ -29,7 +29,6 @@ module.exports = function (options, res, next) {
 		if (options.attribute) {
 			content = result[options.attribute];
 		}
-		res.send(content);
+		return res.send(content);
 	};
-	return responder;
 };

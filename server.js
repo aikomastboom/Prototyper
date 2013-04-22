@@ -27,22 +27,35 @@ var config = {
 		staticpath: '/lib/share',
 		db: {type: 'none'}
 	},
-	importer_path: __dirname + '/public',
-	public_path: __dirname + '/public',
-	markdown_client: __dirname + '/node_modules/markdown/lib',
-	ace_client: __dirname + '/node_modules/share/examples/lib/ace'
+	api: {
+		content: '/content',
+		data: '/data',
+		preview: '/page',
+		importer: '/importer'
+	},
+	statics: {
+		importer_path: __dirname + '/public',
+		public_path: __dirname + '/public',
+		markdown_client: __dirname + '/node_modules/markdown/lib',
+		ace_client: __dirname + '/node_modules/share/examples/lib/ace'
+	}
 };
 
 var app = express();
 config.debug && app.use(connect.logger());
-app.use(express.static(config.public_path));
-app.use('/lib/markdown', express.static(config.markdown_client));
-app.use('/lib/ace', express.static(config.ace_client));
+app.use(express.static(config.statics.public_path));
+app.use('/lib/markdown', express.static(config.statics.markdown_client));
+app.use('/lib/ace', express.static(config.statics.ace_client));
 
 
 var server = instance(app, config);
 
-server.listen(config.port, function (err) {
+server.listen(config.port, function handleServerResult(err) {
+	if (err) {
+		app.stop();
+		console.log('Server error', err);
+		return process.exit(1);
+	}
 	config.debug && console.log('routes', app.routes);
-	console.log('Server running at http://127.0.0.1:', config.port);
+	return console.log('Server running at http://127.0.0.1:', config.port);
 });

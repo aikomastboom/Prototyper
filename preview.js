@@ -5,16 +5,7 @@ var less = require('less');
 var when = require('when');
 var helpers = require('./helpers.js');
 
-module.exports = function (config, mongodataInstance) {
-
-	var sourceHead =
-		'<script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>\n' +
-			'{{#if debug}}' +
-			'<link href="/content/{{collection}}/{{name}}/style.css" media="all" rel="stylesheet/less" type="text/css">\n' +
-			'<script src="//cdnjs.cloudflare.com/ajax/libs/less.js/1.3.3/less.min.js"></script>\n' +
-			'{{else}}' +
-			'<link href="/content/{{collection}}/{{name}}/style.css" media="all" rel="stylesheet" type="text/css">\n' +
-			'{{/if}}';
+module.exports = function (config, mongoDataInstance) {
 
 	var getPreviewHTML = function (content, options, callback) {
 		config.debug && console.log('getPreviewHTML', content);
@@ -38,7 +29,7 @@ module.exports = function (config, mongodataInstance) {
 		var script_tag = 'script__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var script_regexp = new RegExp(helpers.marker_prefix + script_tag + helpers.marker_postfix);
 		promises.push(
-			helpers.replace(html, script_tag, function (result, callback) {
+			helpers.replace(html, script_tag, function handleScriptMarker(result, callback) {
 				var parts = script_regexp.exec(result);
 				var context = {
 					collection: parts[1],
@@ -47,14 +38,14 @@ module.exports = function (config, mongodataInstance) {
 				};
 				return callback(null, {
 					regExp: new RegExp(result, 'gmi'),
-					value: '<script src="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"></script>'
+					value: '<script src="' + config.api.content + '/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"></script>'
 				});
 			}));
 
 		var style_tag = 'style__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var style_regexp = new RegExp(helpers.marker_prefix + style_tag + helpers.marker_postfix);
 		promises.push(
-			helpers.replace(html, style_tag, function (result, callback) {
+			helpers.replace(html, style_tag, function handleStyleMarker(result, callback) {
 				var parts = style_regexp.exec(result);
 				var context = {
 					collection: parts[1],
@@ -63,14 +54,14 @@ module.exports = function (config, mongodataInstance) {
 				};
 				return callback(null, {
 					regExp: new RegExp(result, 'gmi'),
-					value: '<link href="/content/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">'
+					value: '<link href="' + config.api.content + '/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">'
 				});
 			}));
 
 		var template_tag = 'template__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)__context__([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var template_regexp = new RegExp(helpers.marker_prefix + template_tag + helpers.marker_postfix);
 		promises.push(
-			helpers.replace(html, template_tag, function (result, callback) {
+			helpers.replace(html, template_tag, function handleTemplateMarker(result, callback) {
 				var parts = template_regexp.exec(result);
 				var template = {
 					collection: parts[1],
@@ -84,12 +75,12 @@ module.exports = function (config, mongodataInstance) {
 					query: { name: parts[5]},
 					req: options.req
 				};
-				mongodataInstance.getMongoContent(context, function (err, context_result) {
+				return mongoDataInstance.getMongoContent(context, function handleContext(err, context_result) {
 					if (err) {
 						config.errors && console.log('ERR template_tag getMongoContent', context);
 						return callback(err);
 					}
-					mongodataInstance.getMongoAttribute(template, function (err, attribute_result) {
+					return mongoDataInstance.getMongoAttribute(template, function handleTemplate(err, template_result) {
 						if (err) {
 							config.errors && console.log('ERR template_tag getMongoAttribute', template, err);
 							return callback(err);
@@ -99,7 +90,7 @@ module.exports = function (config, mongodataInstance) {
 						// Handlebars is synchronous ouch !!
 						var handlebars = Handlebars.create();
 						_.forEach(_.keys(context_result), function (key) {
-							handlebars.registerHelper(key, function (key_context, key_options) {
+							handlebars.registerHelper(key, function () {
 								if (context_result[key].guid) {
 									if (keys_to_collect.hasOwnProperty(key)) {
 										return keys_to_collect[key];
@@ -112,19 +103,19 @@ module.exports = function (config, mongodataInstance) {
 							});
 						});
 						try {
-							compiled_template = handlebars.compile(attribute_result[template.attribute]);
+							compiled_template = handlebars.compile(template_result[template.attribute]);
 						} catch (err) {
 							config.errors && console.log('ERR template_tag Handlebars.compile', template, err);
 							return callback(err);
 						}
 						try {
-							var tmp_rendered = compiled_template(context_result);
+							compiled_template(context_result);
 						} catch (err) {
 							config.errors && console.log('ERR template_tag Handlebars.render', template, context, err);
 							return callback(err);
 						}
 						var promises = [];
-						_.forEach(_.keys(keys_to_collect), function (key) {
+						_.forEach(_.keys(keys_to_collect), function gatherKeyValues(key) {
 							var deferred = when.defer();
 							var promise = deferred.promise;
 							promises.push(promise);
@@ -133,19 +124,19 @@ module.exports = function (config, mongodataInstance) {
 								attribute: key,
 								query: { _id: context_result._id}
 							};
-							mongodataInstance.getMongoAttribute(attribute_context, function (err, template_attribute_result) {
+							return mongoDataInstance.getMongoAttribute(attribute_context, function cacheTemplateKey(err, template_key_result) {
 								if (err) {
 									config.errors && console.log('ERR handlebar.registerHelper getMongoAttribute', err);
 									deferred.reject(err);
 								}
-								var value = template_attribute_result[key];
+								var value = template_key_result[key];
 								keys_to_collect[key] = value;
 								deferred.resolve(value);
 							});
 						});
-						when.all(
+						return when.all(
 							promises,
-							function onSuccess(values) {
+							function onSuccess() {
 								var rendered = null;
 								try {
 									rendered = compiled_template(context_result);
@@ -153,9 +144,9 @@ module.exports = function (config, mongodataInstance) {
 									config.errors && console.log('ERR template_tag Handlebars.render', template, context, err);
 									return callback(err);
 								}
-								config.debug && console.log('// recurse markers on rendered template');
+								config.debug && console.log('// handle markers on rendered template');
 								context.query = {_id: context_result._id};
-								getPreviewHTML(rendered, context, function (err, preview_html) {
+								return getPreviewHTML(rendered, context, function handlePreviewResult(err, preview_html) {
 									if (err) {
 										config.errors && console.log('ERR template_tag getPreviewHTML', err);
 										return callback(err);
@@ -178,18 +169,18 @@ module.exports = function (config, mongodataInstance) {
 		var markdown_tag = 'markdown__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 		var markdown_regexp = new RegExp(helpers.marker_prefix + markdown_tag + helpers.marker_postfix);
 		promises.push(
-			helpers.replace(html, markdown_tag, function (result, callback) {
+			helpers.replace(html, markdown_tag, function handleMarkDownMarker(result, callback) {
 				var parts = markdown_regexp.exec(result);
 				var attribute = {
 					collection: parts[1],
 					name: parts[2],
 					attribute: parts[3]
 				};
-				mongodataInstance.getMongoAttribute(attribute, function (err, attribute_result) {
+				return mongoDataInstance.getMongoAttribute(attribute, function handleMarkdownContent(err, markdown_result) {
 					if (err) {
 						return callback(err);
 					}
-					var html = markdown.toHTML(attribute_result[options.attribute]);
+					var html = markdown.toHTML(markdown_result[options.attribute]);
 					return callback(null, {
 						regExp: new RegExp(result, 'gmi'),
 						value: html
@@ -200,7 +191,7 @@ module.exports = function (config, mongodataInstance) {
 		var remove_tag = 'remove_([\\w\\W]*?)_end_remove';
 		//var remove_regexp = new RegExp(remove_tag);
 		promises.push(
-			helpers.replace(html, remove_tag, function (result, callback) {
+			helpers.replace(html, remove_tag, function handleRemoveMarker(result, callback) {
 				return callback(null, {
 					regExp: null,
 					value: ""

@@ -1,5 +1,5 @@
-var sharejs = require('share');
-var mongodata = require('./mongodata.js');
+var ShareJS = require('share');
+var mongoData = require('./mongodata.js');
 var responder = require('./responder.js');
 var preview = require('./preview.js');
 var importer = require('./importer.js');
@@ -10,12 +10,13 @@ var fs = require('fs');
 module.exports = function (app, config) {
 
 	// share wraps express app with http.Server
-	var server = sharejs.server.attach(app, config.share);
+	var server = ShareJS.server.attach(app, config.share);
 	var model = app.model;
 
-	var mongodataInstance = mongodata(config);
-
-	app.get('/data/:collection/:guid/:attribute.:ext(css|less|js|html)',
+	var mongoDataInstance = mongoData(config);
+	var route;
+	route = config.api.data + '/:collection/:guid/:attribute.:ext(css|less|js|html)';
+	app.get(route,
 		function getMongoAttribute(req, res, next) {
 			config.debug && console.log('/data/:collection/:guid/:attribute.:ext(less|js|html)');
 			var options = {
@@ -24,13 +25,14 @@ module.exports = function (app, config) {
 				ext: req.params.ext,
 				query: {_id: req.params.guid}
 			};
-			mongodataInstance.getMongoAttribute(options,
+			mongoDataInstance.getMongoAttribute(options,
 				responder(options, res, next)
 			);
 		}
 	);
 
-	app.get('/data/:collection/:guid.:ext(json)',
+	route = config.api.data + '/:collection/:guid.:ext(json)';
+	app.get(route,
 		function getMongoContent(req, res, next) {
 			config.debug && console.log('/data/:collection/:guid.:ext(json)');
 			var options = {
@@ -38,13 +40,14 @@ module.exports = function (app, config) {
 				ext: req.params.ext,
 				query: {_id: req.params.guid}
 			};
-			mongodataInstance.getMongoContent(options,
+			mongoDataInstance.getMongoContent(options,
 				responder(options, res, next)
 			);
 		}
 	);
 
-	app.get('/content/:collection/:name/:attribute.:ext(css|less|js|html)',
+	route = config.api.content + '/:collection/:name/:attribute.:ext(css|less|js|html)';
+	app.get(route,
 		function getMongoAttribute(req, res, next) {
 			config.debug && console.log('/content/:collection/:name/:attribute.:ext(less|js|html)');
 			var options = {
@@ -53,13 +56,14 @@ module.exports = function (app, config) {
 				ext: req.params.ext,
 				query: {name: req.params.name}
 			};
-			mongodataInstance.getMongoAttribute(options,
+			mongoDataInstance.getMongoAttribute(options,
 				responder(options, res, next)
 			);
 		}
 	);
 
-	app.get('/content/:collection/:name.:ext(json)',
+	route = config.api.content + '/content/:collection/:name.:ext(json)';
+	app.get(route,
 		function getMongoContent(req, res, next) {
 			config.debug && console.log('/content/:collection/:name.:ext(json)');
 			var options = {
@@ -67,7 +71,7 @@ module.exports = function (app, config) {
 				ext: req.params.ext,
 				query: {name: req.params.name}
 			};
-			mongodataInstance.getMongoContent(options,
+			mongoDataInstance.getMongoContent(options,
 				responder(options, res, next)
 			);
 		}
@@ -129,10 +133,10 @@ module.exports = function (app, config) {
 		if (splitId.length == 4) {
 			options.query = {_id: splitId[2]};
 			options.attribute = splitId[3];
-			mongodataInstance.getMongoAttribute(options, handleMongoGetResult(options));
+			mongoDataInstance.getMongoAttribute(options, handleMongoGetResult(options));
 		} else {
 			options.query = {name: splitId[2]};
-			mongodataInstance.getMongoContent(options, handleMongoGetResult(options));
+			mongoDataInstance.getMongoContent(options, handleMongoGetResult(options));
 		}
 	});
 
@@ -148,7 +152,7 @@ module.exports = function (app, config) {
 				var operation = { op: [
 					{ p: ['name'], oi: result.name, od: null }
 				], v: options.operation.v };
-				model.applyOp(options.documentId, operation, function appliedOp(error, version) {
+				return model.applyOp(options.documentId, operation, function appliedOp(error, version) {
 					config.debug && console.log('setResult applyOp version', version);
 					if (error) {
 						config.error && console.log('ERR2 handleMongoSetResult', error);
@@ -156,6 +160,8 @@ module.exports = function (app, config) {
 					}
 					return callback && callback(null, version);
 				});
+			} else {
+				return callback(null, null);
 			}
 		}
 
@@ -166,7 +172,7 @@ module.exports = function (app, config) {
 		function handleResult(err, result) {
 			if (err) {
 				config.errors && console.log('ERR1 handleMongoAttributeSetResult Error while saving document ', options.collection, JSON.stringify(options.query), options.attribute || "", err);
-				return callback && callback(err);
+				return callback(err);
 			}
 			options.debug && console.log('current', current, 'result', result);
 			if (result.hasOwnProperty('_id')) {
@@ -177,14 +183,16 @@ module.exports = function (app, config) {
 					{ p: [options.attribute], oi: { guid: result._id }, od: null }
 				], v: options.operation.v };
 
-				model.applyOp(parentDocId, operation, function appliedOp(error, version) {
+				return model.applyOp(parentDocId, operation, function appliedOp(error, version) {
 					config.debug && console.log('setResult applyOp parent version', version);
 					if (error) {
 						config.error && console.log('ERR2 handleMongoAttributeSetResult', error);
-						return callback && callback(error);
+						return callback(error);
 					}
-					return callback && callback(null, version);
+					return callback(null, version);
 				})
+			} else {
+				return callback(null, null);
 			}
 		}
 
@@ -194,22 +202,22 @@ module.exports = function (app, config) {
 	var timers = {};
 
 	function handleSetTimeout(documentId) {
-		return function () {
+		return function saveContent() {
 			var args = timers[documentId];
 			delete timers[documentId];
 			config.debug && console.log('running timer', documentId);
-			mongodataInstance.setMongoContent(args.current, args.options,
+			mongoDataInstance.setMongoContent(args.current, args.options,
 				handleMongoSetResult(args.options, args.current,
-					function (err, result) {
+					function handleApplyOpResult(err, version) {
 						if (err) {
-							config.errors && console.log('ERR2 applyOp', err);
+							config.errors && console.log('ERR2 applyOp', version, err);
 						}
 					}));
 		};
 	}
 
 	function handleSetAttributeTimeout(documentId) {
-		return function () {
+		return function saveAttribute() {
 			var args = timers[documentId];
 			delete timers[documentId];
 			config.debug && console.log('running timer', documentId);
@@ -217,11 +225,11 @@ module.exports = function (app, config) {
 			if (args.options.type == 'json') {
 				data = JSON.parse(args.current);
 			}
-			mongodataInstance.setMongoAttribute(data, args.options,
+			mongoDataInstance.setMongoAttribute(data, args.options,
 				handleMongoAttributeSetResult(args.options, data,
-					function (err, result) {
+					function handleApplyOpResult(err, version) {
 						if (err) {
-							config.errors && console.log('ERR1 applyOp', err);
+							config.errors && console.log('ERR1 applyOp', version, err);
 						}
 					}));
 		};
@@ -229,7 +237,7 @@ module.exports = function (app, config) {
 
 	// 'applyOp' event is fired when an operational transform is applied to to a shareDoc
 	// a shareDoc has changed and needs to be saved to mongo
-	model.on('applyOp', function persistDocument(documentId, operation, current, previous) {
+	model.on('applyOp', function persistDocument(documentId, operation, current) {
 		config.debug && console.log('applyOp', documentId, operation, current);
 		if (operation.v == 0) return;
 
@@ -272,9 +280,10 @@ module.exports = function (app, config) {
 		}
 	});
 
-	var previewInstance = preview(config, mongodataInstance);
+	var previewInstance = preview(config, mongoDataInstance);
 
-	app.get('/page/:collection/:name.:ext(html)',
+	route = config.api.preview + '/:collection/:name.:ext(html)';
+	app.get(route,
 		function getPreviewContent(req, res, next) {
 			config.debug && console.log('/page/:collection/:name.:ext(html)');
 			var options = {
@@ -284,11 +293,10 @@ module.exports = function (app, config) {
 				req: { query: req.query || {},
 					headers: req.headers
 				}
-//				debug: req.query && req.query.hasOwnProperty('debug')
 			};
-			mongodataInstance.getMongoContent(options, function (err, result) {
+			mongoDataInstance.getMongoContent(options, function handleResult(err, result) {
 				if (err) {
-					responder(options, res, next)(err, result);
+					return responder(options, res, next)(err, result);
 				}
 				if (result) {
 					var attribute_parts = options.query.name.split('.');
@@ -305,23 +313,26 @@ module.exports = function (app, config) {
 						};
 
 						config.debug && console.log('getPreviewContent content', attribute_value);
-						previewInstance.getPreviewHTML(attribute_value, preview_options,
+						return previewInstance.getPreviewHTML(attribute_value, preview_options,
 							responder(options, res, next)
 						);
 					} else {
 						return next();
 					}
+				} else {
+					return next();
 				}
 			});
 		}
 	);
 
-	var importerInstance = importer(config, mongodataInstance, model);
+	var importerInstance = importer(config, mongoDataInstance, model);
 
-	app.get('/importer/:filename', function importFile(req, res, next) {
-		var filename = path.resolve(config.importer_path, req.params.filename);
+	route = config.api.importer + '/:filename';
+	app.get(route, function importFile(req, res, next) {
+		var filename = path.resolve(config.statics.importer_path, req.params.filename);
 		config.debug && console.log('/importer/:filename', filename);
-		fs.readFile(filename, 'utf-8', function (err, sub_doc) {
+		fs.readFile(filename, 'utf-8', function handleFileContent(err, sub_doc) {
 			if (err) {
 				config.errors && console.log('ERR readFile', filename, err);
 				next(err);

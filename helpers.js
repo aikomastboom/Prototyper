@@ -13,14 +13,14 @@ function replace(text, marker, getReplacement, once) {
 			matches = [matches[0]];
 		}
 		var match_promises = [];
-		_.forEach(matches, function (result) {
+		_.forEach(matches, function handleMatch(result) {
 			var deferred2 = when.defer();
 			match_promises.push(deferred2.promise);
-			getReplacement(result, function (err, replacement) {
+			getReplacement(result, function resolveReplacement(err, replacement) {
 				if (err) {
 					deferred2.reject(err);
 				} else {
-					var replace_result ={
+					var replace_result = {
 						regExp: replacement.regExp || regExp,
 						replacement: replacement.value
 					};
@@ -47,9 +47,9 @@ function handTextManipulation(text, promises, handler, callback) {
 	when.all(
 		promises,
 		function onSuccess(all_results) {
-			_.forEach(all_results, function (results) {
-				_.forEach(results, function (result) {
-					text = handler( text, result);
+			_.forEach(all_results, function loopResults(results) {
+				_.forEach(results, function handleResult(result) {
+					text = handler(text, result);
 				});
 			});
 			return callback(null, text);
