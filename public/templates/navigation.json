@@ -3,6 +3,11 @@
 		"prototyper": {
 			"title": "Prototyper",
 			"links": {
+				"homepage": {
+					"title": "Homepage",
+					"url": "http://github.com/aikomastboom/Prototyper",
+					"icon_class": "icon-home"
+				},
 				"editor": {
 					"title": "Editor",
 					"url": "/page/app/main.index.html",
@@ -51,7 +56,8 @@
 							"links": {
 								"homepage": {
 									"title": "Home page",
-									"url": "http://knockoutjs.com/index.html"
+									"url": "http://knockoutjs.com/index.html",
+									"icon_class": "icon-home"
 								},
 								"documentation": {
 									"title": "Documentation",
@@ -81,7 +87,8 @@
 							"links": {
 								"homepage": {
 									"title": "Homepage",
-									"url": "http://nodejs.org"
+									"url": "http://nodejs.org",
+									"icon_class": "icon-home"
 								},
 								"api": {
 									"title": "API",
@@ -94,7 +101,8 @@
 							"links": {
 								"homepage": {
 									"title": "Homepage",
-									"url": "http://expressjs.com"
+									"url": "http://expressjs.com",
+									"icon_class": "icon-home"
 								},
 								"api": {
 									"title": "API",
@@ -113,11 +121,12 @@
 						},
 						"sharejs": {
 							"title": "ShareJS",
-							"url": "https://github.com/josephg/ShareJS/wiki"
+							"url": "https://github.com/josephg/ShareJS/wiki",
 						},
 						"underscore": {
 							"title": "Underscore",
-							"url": "http://underscorejs.org/"
+							"url": "http://underscorejs.org/",
+							"icon_class": "icon-home"
 						}
 
 					}
