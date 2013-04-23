@@ -8,16 +8,18 @@ current_dir=$(cd $(dirname $0) && pwd)
 cd ${current_dir}
 
 mkdir -p ./public/lib/knockout
+cd ./public/lib/knockout
 if [ ! -f ./public/lib/knockout/knockout.mapping-latest.js ]; then
-  cd ./public/lib/knockout
   curl -O https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js
-  cd ${current_dir}
+fi
+
+if [ ! -f ./public/lib/knockout/knockout.mapping-latest.debug.js ]; then
+  curl -O https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js
 fi
 
 if [ ! -f ./public/lib/knockout/knockout-bootstrap.min.js ]; then
-  cd ./public/lib/knockout
   curl -O https://raw.github.com/billpull/knockout-bootstrap/master/build/knockout-bootstrap.min.js
-  cd ${current_dir}
 fi
+cd ${current_dir}
 
 
