@@ -498,10 +498,12 @@ var app = {
     vm: {}
 };
 
-loadConfig(app, config_location, app.vm, function (err, app) {
+loadConfig(app, config_location, app.vm, function (err, returned_app) {
     if (err) {
         console.log('Error loading config', err);
     }
+    // TODO: callback called twice, first time returned app is null
+    console.log('returned app', returned_app);
     //initializeViewModels(app, viewModels);
     app.state['running'] = true;
 });
