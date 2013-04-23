@@ -1,15 +1,41 @@
-<!DOCTYPE html><!-- @@import__app_main_json_ -->
-{ "_availableModes" : [
+<!DOCTYPE html><!-- @@import__app_config_json_ -->{
+    "navigation": {
+        "collection": "app",
+        "name": "navigation"
+    },
+    "user": {
+        "collection": "users"
+    },
+    "main": {
+        "collection": "app",
+        "name": "main"
+    },
+    "viewModel": {
+        "main":
+        {
+            "editorId": "editor",
+            "mapping" : {
+                "ignore": ["name", "version"]
+            }
+        },
+        "navigation":
+        {
+            "mapping": {},
+            "elementId": "navigation"
+        }
+    }
+}<!-- @@_end_import__app_config_json --><!-- @@import__app_main_json_ -->{
+"_availableModes" : [
     { "name": "none", "ace":"none" },
     { "name": "HTML", "ace":"html" },
     { "name": "Style", "ace":"css" },
     { "name": "Behaviour", "ace":"javascript" },
     { "name": "Text", "ace":"markdown" },
     { "name": "JSON", "ace":"json" }
-        ]
-}
-<!-- @@_end_import__app_main_json -->
+]
+}<!-- @@_end_import__app_main_json -->
 <!-- @@import_file__../README.md__into__app_main_readme -->
+<!-- @@import_file__templates/navigation.json__into__app_navigation_json -->
 <!-- @@import_leftovers__app_main_index --><html>
 <head>
     <!-- @@import_file__templates/head.html__into__app_templates_head -->
@@ -40,6 +66,13 @@
         </div>
         <select data-bind="options: _availableModes(), optionsText: 'name', value: _selectedMode"></select>
     </div>
+    <div id="navigation" class="navbar">
+        <div class="navbar-inner">
+            <div class="container">
+                <a class="brand" href="#">Navigation</a>
+            </div>
+        </div>
+    </div>
     <div class="navbar">
         <div class="navbar-inner">
             <div class="container">
@@ -55,11 +88,11 @@
                     </div>
                     <!-- /ko -->
                 </div>
-                <button class="btn pull-right" title="preview" data-bind="enable: $root._chosenAttributeId, click: $root._previewAttribute"><i class="icon-eye-open"></i></button>
+                <button class="btn pull-right" title="preview" data-bind="enable: _chosenAttributeId, click: _previewAttribute"><i class="icon-eye-open"></i></button>
                 <!--<ul class="nav pull-right"><li>-->
                 <div class="nav navbar-form pull-right">
                     <input type="text" class="span2"
-                           data-bind="value: $root._newAttribute"/>
+                           data-bind="value: _newAttribute"/>
                 </div>
                 <!--</li></ul>-->
             </div>
@@ -83,7 +116,7 @@
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>
 <script src="//underscorejs.org/underscore-min.js"></script>
-<script src="/lib/knockout/knockout.mapping-latest.js"></script>
+<script src="/lib/knockout/knockout.mapping-latest.debug.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
 <script src="/lib/knockout/knockout-bootstrap.min.js"></script>
@@ -102,141 +135,151 @@
 <!-- @@template__app_main_behaviour__context__app_main -->
 <!-- @@import__app_main_behaviour_ -->
 <script>
-var attribute = 'index';
-var editor = ace.edit("editor");
-var aceMode = null;
-var session = editor.getSession();
-var viewModel = null;
-var viewModel_updating = false;
-var doc = null;
-var mainDoc = null;
-editor.setReadOnly(true);
 
-var setMode = function (attribute, mode) {
-    console.log('setmode', attribute, mode);
-    var ace_mode = mode;
-    if (!mode || mode == 'none') {
-        ace_mode = 'markdown';
+function main_functions(app, viewModel, vm_config) {
+    var editor = null;
+    if (! app.state.editor || (app.state.editor.editorId |= vm_config.editorId)) {
+        var aceInstance = ace.edit(vm_config.editorId || "editor");
+        editor = {
+            editorId: vm_config.editorId,
+            ace: aceInstance,
+            session: aceInstance.getSession(),
+            doc: null
+        };
+        aceInstance.setReadOnly(true);
+    } else {
+        editor = app.state.editor;
     }
-    if (mainDoc.snapshot
-            && mainDoc.snapshot[attribute]) {
-        aceMode = require("ace/mode/" + ace_mode).Mode;
-        session.setMode(new aceMode());
-        var currentMode = mainDoc.snapshot[attribute].mode;
-        if (!currentMode) {
-            currentMode = 'none';
-        }
-        console.log('modes', attribute, currentMode, mode);
-
-
-        if (currentMode != mode) {
-            console.log('mode differs', attribute, currentMode, mode);
-            var op = [];
-            if (mainDoc.snapshot[attribute].mode) {
-                console.log('// remove', attribute, mode);
-                op.push({
-                    p: [attribute, 'mode'],
-                    od: mainDoc.snapshot[attribute].mode
-
-                })
+    return {
+        setMode: function (attribute, mode) {
+            console.log('setmode', attribute, mode);
+            var ace_mode = mode;
+            if (!mode || mode == 'none') {
+                ace_mode = 'markdown';
             }
-            if (mode && mode != 'none') {
-                console.log('//insert', attribute, mode);
-                op.push({
-                    p: [attribute, 'mode'],
-                    oi: mode
-                });
+            if (app.doc.main.snapshot
+                    && app.doc.main.snapshot[attribute]) {
+                var aceMode = require("ace/mode/" + ace_mode).Mode;
+                editor.session.setMode(new aceMode());
+                var currentMode = app.doc.main.snapshot[attribute].mode;
+                if (!currentMode) {
+                    currentMode = 'none';
+                }
+                console.log('modes', attribute, currentMode, mode);
+
+
+                if (currentMode != mode) {
+                    console.log('mode differs', attribute, currentMode, mode);
+                    var op = [];
+                    if (app.doc.main.snapshot[attribute].mode) {
+                        console.log('// remove', attribute, mode);
+                        op.push({
+                            p: [attribute, 'mode'],
+                            od: app.doc.main.snapshot[attribute].mode
+
+                        })
+                    }
+                    if (mode && mode != 'none') {
+                        console.log('//insert', attribute, mode);
+                        op.push({
+                            p: [attribute, 'mode'],
+                            oi: mode
+                        });
+                    }
+                    app.doc.main.submitOp(op, function (err, result) {
+                        console.log('err', err, 'result', result);
+                    });
+                }
             }
-            mainDoc.submitOp(op, function (err, result) {
-                console.log('err', err, 'result', result);
+        },
+
+        setDoc: function (attribute) {
+            editor.ace.setReadOnly(true);
+            var mode = (app.doc.main.snapshot
+                    && app.doc.main.snapshot[attribute]
+                    && app.doc.main.snapshot[attribute].mode
+                    ) || 'none';
+            console.log('setDoc attribute, mode', attribute, mode);
+            this.setMode(attribute, mode);
+            //document.title = attribute;
+
+            var docName = 'text:app:' + viewModel._id() + ':' + attribute;
+
+            sharejs.open(docName, 'text', function (error, newDoc) {
+
+                if (editor.doc != null) {
+                    editor.doc.close();
+                    editor.doc.detach_ace();
+                }
+
+                editor.doc = newDoc;
+
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+                editor.doc.attach_ace(editor.ace);
+                editor.ace.setReadOnly(false);
+                editor.ace.focus(); //To focus the ace editor
             });
+        },
+
+        getExtensionForAttribute: function (attribute) {
+            var mode = this.getModeForAttribute(attribute);
+            if (mode && mode.ace() == 'markdown') {
+                return '.md';
+            } else {
+                return '.html';
+            }
+        },
+
+        getModeForChosenAttribute: function () {
+            var attribute = viewModel._chosenAttributeId();
+            console.log('getModeForChosenAttribute._chosenAttributeId',attribute);
+            return this.getModeForAttribute(attribute)
+        },
+
+        getModeForAttribute: function (attribute) {
+            if (!attribute) {
+                return null;
+            }
+            var mode = _.find(viewModel._availableModes(),
+                    function (mode) {
+                        return viewModel[attribute].mode && (mode.ace() == viewModel[attribute].mode());
+                    });
+            if (mode) {
+                console.log('getModeForAttribute',mode);
+                return mode;
+            } else {
+                mode = _.find(viewModel._availableModes(),
+                        function (mode) {
+                            return mode.ace() == 'none';
+                        });
+                console.log('getModeForAttribute',mode);
+                return mode;
+            }
+        },
+
+        updateSelectedMode: function () {
+            var selectedMode = this.getModeForChosenAttribute();
+            console.log('updateSelectedMode.getModeForChosenAttribute', selectedMode);
+            if (selectedMode) {
+                console.log('setSelectedMode:', selectedMode.ace());
+                viewModel._selectedMode(selectedMode);
+            }
         }
     }
-};
+}
 
-var setDoc = function (attribute) {
-    editor.setReadOnly(true);
-    var mode = (mainDoc.snapshot
-            && mainDoc.snapshot[attribute]
-            && mainDoc.snapshot[attribute].mode
-            ) || 'none';
-    console.log('setDoc attribute, mode', attribute, mode);
-    setMode(attribute, mode);
-    //document.title = attribute;
-
-    var docName = 'text:app:' + viewModel._id() + ':' + attribute;
-
-    sharejs.open(docName, 'text', function (error, newDoc) {
-
-        if (doc != null) {
-            doc.close();
-            doc.detach_ace();
-        }
-
-        doc = newDoc;
-
-        if (error) {
-            console.error(error);
-            return;
-        }
-        doc.attach_ace(editor);
-        editor.setReadOnly(false);
-        editor.focus(); //To focus the ace editor
-    });
-};
-var mapping = {
-    'ignore': ["name", "version"]
-};
-
-function addComputed(doc) {
-    var snapshot = doc.snapshot;
+function addComputed(snapshot) {
     snapshot._keys = _.filter(
-            Object.keys(snapshot),
-            function (key) {
-                return key[0] != '_'
-                        && key != 'name'
-                        && key != 'version';
-            });
-}
-
-function getExtensionForAttribute(attribute) {
-    var mode = getModeForAttribute(attribute);
-    if (mode && mode.ace() == 'markdown') {
-        return '.md';
-    } else {
-        return '.html';
-    }
-}
-
-function getModeForChosenAttribute() {
-    var attribute = viewModel._chosenAttributeId();
-    return getModeForAttribute(attribute)
-}
-function getModeForAttribute(attribute) {
-    if (!attribute) {
-        return null;
-    }
-    var mode = _.find(viewModel._availableModes(),
-            function (mode) {
-                return viewModel[attribute].mode && (mode.ace() == viewModel[attribute].mode());
-            });
-    if (mode) {
-        return mode;
-    } else {
-        mode = _.find(viewModel._availableModes(),
-                function (mode) {
-                    return mode.ace() == 'none';
-                });
-        return mode;
-    }
-}
-
-function updateSelectedMode() {
-    var selectedMode = getModeForChosenAttribute();
-    if (selectedMode) {
-        console.log('setSelectedMode:', selectedMode.ace());
-        viewModel._selectedMode(selectedMode);
-    }
+        Object.keys(snapshot),
+        function (key) {
+            return key[0] != '_'
+                    && key != 'name'
+                    && key != 'version';
+        }
+    );
 }
 
 function open_in_new_tab(url) {
@@ -244,25 +287,35 @@ function open_in_new_tab(url) {
     win.focus();
 }
 
-function initViewModel(doc) {
-    viewModel_updating = true;
-    addComputed(doc);
+function initViewModelMain(app, doc, vm_config) {
+    var mapping = vm_config.mapping;
+    var elementId = vm_config.elementId;
+
+//    app.state['mainViewModel_updating'] = true;
     var snapshot = doc.snapshot;
+    addComputed(snapshot);
+    var element = null;
+    if (elementId) {
+        element = document.getElementById(elementId);
+    }
     var viewModel = ko.mapping.fromJS(snapshot, mapping);
+    console.log('mapped', viewModel, snapshot, mapping);
     viewModel._chosenAttributeId = ko.observable();
     viewModel._newAttribute = ko.observable();
     viewModel._selectedMode = ko.observable();
-
+    app.fn['main'] = main_functions(app, viewModel, vm_config);
+    console.log('added functions', viewModel, snapshot, mapping);
 
     // Behaviours
     viewModel._goToAttribute = function (attribute) {
         viewModel._chosenAttributeId(attribute);
-        updateSelectedMode();
-        setDoc(attribute);
+        app.fn.main.updateSelectedMode();
+        app.fn.main.setDoc(attribute);
     };
+
     viewModel._newAttribute.subscribe(function (newValue) {
         if (newValue) {
-            mainDoc.submitOp({
+            app.doc.main.submitOp({
                 p: [newValue],
                 oi: {}
             }, function (err, result) {
@@ -274,70 +327,189 @@ function initViewModel(doc) {
     viewModel._previewAttribute = function () {
         var id = viewModel._chosenAttributeId();
         if (id) {
-            var ext = getExtensionForAttribute(id);
-            var url = '/page/app/main.'+id+ext;
+            var ext = app.fn.main.getExtensionForAttribute(id);
+            var url = '/page/app/main.' + id + ext;
             open_in_new_tab(url);
         }
 
     }
+
     viewModel._getMode = ko.computed(function () {
         var id = viewModel._chosenAttributeId();
         return id && viewModel[id].mode;
     });
+
     viewModel._selectedMode.subscribe(function (newValue) {
-        if (newValue && !viewModel_updating) {
+        if (mainViewModelUpdating) {
+            console.error('// fires during ko.mapping.fromJS');
+        }
+        if (newValue && !mainViewModelUpdating) {
             console.log('_selectedMode, newValue', newValue.ace());
-            setMode(viewModel._chosenAttributeId(), newValue.ace());
+            app.fn.main.setMode(viewModel._chosenAttributeId(), newValue.ace());
         }
     });
+
     viewModel._closeDoc = function (attribute) {
         console.log('closing ', attribute);
     };
-    ko.applyBindings(viewModel);
-    window.viewModel = viewModel;
-    console.log('viewModel', viewModel);
-    viewModel_updating = false;
+
+    ko.applyBindings(viewModel, element);
+    console.log('mainViewModel', viewModel);
+    return viewModel;
 }
 
-function updateViewModel(doc) {
-    viewModel_updating = true;
-    addComputed(doc);
-    ko.mapping.fromJS(doc.snapshot, viewModel);
+var mainViewModelUpdating = false;
+function updateViewModelMain(app, viewModel, doc, vm_config) {
+    mainViewModelUpdating = true;
+    var snapshot = doc.snapshot;
+    addComputed(snapshot);
+    console.log('updating viewModel', snapshot, viewModel, vm_config);
+    ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
     console.log('updated viewModel', viewModel);
-    updateSelectedMode();
-    viewModel_updating = false;
+    mainViewModelUpdating = false;
+    app.fn.main.updateSelectedMode();
+}
+function initViewModel(app, viewModels, key, doc, vm_config) {
+    console.log('initViewModel', viewModels, key, doc, vm_config);
+    if (key == 'main') {
+        viewModels[key] = initViewModelMain(app, doc, vm_config);
+    }
+    if (key == 'navigation') {
+        //viewModels[key] = app.fn.initViewModelNavigation(app, doc, mapping, elementId);
+    }
+}
+;
+function updateViewModel(app, viewModels, key, doc, vm_config) {
+    if (key == 'main') {
+//        app.state.vm.updating = true;
+        updateViewModelMain(app, viewModels[key], doc, vm_config);
+//        app.state.vm.updating = true;
+    }
+    if (key == 'navigation') {
+        // updateViewModelMain(app, viewModels[key], doc, mapping);
+    }
+}
+
+function initializeViewModel(app, doc, key, viewModels, vm_config) {
+    initViewModel(app, viewModels, key, doc, vm_config);
+    doc.on('change', function () {
+        console.log(key, ' viewmodel changed!!');
+        if (app.state.running) {
+            console.log(key, ' viewmodel changed!! updating', vm_config);
+            if (viewModels[key]) {
+                updateViewModel(app, viewModels, key, doc, vm_config);
+            } else {
+                initViewModel(app, viewModels, key, doc, vm_config);
+            }
+        }
+    });
 
 }
 
-sharejs.open('json:app:main', 'json', function (error, main) {
-    if (error) {
-        console.log('error opening app:main:json', error, main);
-    } else {
-        console.log('yes!!', main);
-        mainDoc = main;
-        var snapshot = main.snapshot;
-        if (snapshot == null) {
-            //TODO test/handle this situation
-            console.log('// TODO no data for main yet??');
-        } else {
-            initViewModel(main)
+function loadLocation(location, callback) {
+    console.log('opening location', location.collection, location.name);
+    return sharejs.open('json:' + location.collection + ':' + location.name, 'json', function (err, doc) {
+        if (err) {
+            console.log('error loadLocation', location, err);
+            return callback(err);
         }
-        main.on('change', function () {
-            console.log('main changed!!', main.snapshot, viewModel);
-            if (main.snapshot && viewModel) {
-                updateViewModel(main);
-            } else {
-                initViewModel(main)
-            }
-        });
+        console.log('opened location', location.collection, location.name);
+        return callback(null, doc);
+    });
+}
+
+function getCurrentUser() {
+    return 'aiko';
+}
+
+function loadConfigKey(key, location, viewModels, vm_config, callback) {
+    console.log('loadConfigKey', key, location);
+    if (key == 'user') {
+        var user = getCurrentUser();
+        if (user) {
+            location.name = user;
+            console.log('loadConfig user', location);
+            loadLocation(location, callback);
+        }
+        else callback(new Error('User not logged in.'), null);
+    } else {
+        loadLocation(location, callback);
     }
-})
+}
+
+function initializeConfig(doc, app, viewModels, callback) {
+    var snapshot = doc.snapshot;
+    if (!snapshot) {
+        return callback(new Error('Config does not exist'));
+    }
+    _.forEach(_.keys(snapshot), function handleKey(key) {
+        if (key != 'name' && key != '_id' && key != 'viewModel' && !app.hasOwnProperty(key)) {
+            var location = snapshot[key];
+            var vm_config = snapshot.viewModel && snapshot.viewModel[key];
+            loadConfigKey(key, location, viewModels, vm_config, function handleLoadedKey(err, key_doc) {
+                if (err) {
+                    console.error('Error loading key', key, err);
+                    return callback(err);
+                } else {
+                    app.doc[key] = key_doc;
+                    if (vm_config) {
+//                        console.log('initializeConfig', vm_config);
+                        initializeViewModel(app, key_doc, key, viewModels, vm_config);
+                        key_doc.on('open', function () {
+                            console.log(key,'opened, initializingViewModel');
+                            initializeViewModel(app, key_doc, key, viewModels, vm_config);
+                        });
+                    }
+                }
+                return callback(null, app);
+            });
+        }
+    });
+    //return callback(null, app);
+}
+
+function loadConfig(app, location, viewModels, callback) {
+    loadLocation(location, function handleConfig(err, doc) {
+        if (err) {
+            console.log('error loadConfig', location, err);
+            return callback(err);
+        }
+        app['config'] = doc;
+        initializeConfig(doc, app, viewModels, callback);
+        doc.on('open', function () {
+            console.log('config opened');
+            initializeConfig(doc, app, viewModels, callback);
+        });
+        return doc.on('change', function handleConfigChange(docOp, oldSnapshot) {
+            console.log('Config changed!!');
+            initializeConfig(doc, app, viewModels, callback);
+        });
+    });
+}
+
+var config_location = {
+    collection: "app",
+    name: "config"
+};
+var app = {
+    state: { running: false },
+    doc: {},
+    fn: {},
+    vm: {}
+};
+
+loadConfig(app, config_location, app.vm, function (err, app) {
+    if (err) {
+        console.log('Error loading config', err);
+    }
+    //initializeViewModels(app, viewModels);
+    app.state['running'] = true;
+});
+
+
 </script>
 <!-- @@_end_import__app_main_behaviour -->
 <!-- @@_end_import__app_main_body -->
-<!-- @@import_ _app_config_json_ -->
-
-<!-- @@_end_import_ _app_config_json -->
 </body>
 </html>	
 

@@ -1,0 +1,128 @@
+{
+	"links": {
+		"prototyper": {
+			"title": "Prototyper",
+			"links": {
+				"editor": {
+					"title": "Editor",
+					"url": "/page/app/main.index.html",
+					"icon_class": "icon-home"
+				},
+				"importer": {
+					"title": "Import index",
+					"url": "/importer/index.html",
+					"icon_class": "icon-refresh"
+				},
+				"readme": {
+					"title": "Readme",
+					"url": "/page/app/main.readme.md",
+					"icon_class": "icon-info-sign"
+				}
+
+			}
+		},
+		"references": {
+			"title": "Reference",
+			"links": {
+				"frontend": {
+					"title": "Backend",
+					"links": {
+						"bootstrap": {
+							"title": "Bootstrap",
+							"links": {
+								"button-generator": {
+									"title": "Button Generator",
+									"url": "http://www.plugolabs.com/twitter-bootstrap-button-generator/"
+								}
+							}
+						},
+						"markdown": {
+							"title": "Markdown",
+							"links": {
+								"syntax": {
+									"title": "Syntax",
+									"url": "http://daringfireball.net/projects/markdown/syntax"
+								}
+
+							}
+						},
+						"knockout": {
+							"title": "Knockout",
+							"links": {
+								"homepage": {
+									"title": "Home page",
+									"url": "http://knockoutjs.com/index.html"
+								},
+								"documentation": {
+									"title": "Documentation",
+									"url": "http://knockoutjs.com/documentation/introduction.html"
+								},
+								"plugins-mapping": {
+									"title": "Mapping Plugin",
+									"url": "http://knockoutjs.com/documentation/plugins-mapping.html"
+								}
+							}
+						},
+						"sharejs": {
+							"title": "ShareJS",
+							"url": "https://github.com/josephg/ShareJS/wiki"
+						},
+						"underscore": {
+							"title": "Underscore",
+							"url": "http://underscorejs.org/"
+						}
+					}
+				},
+				"backend": {
+					"title": "Backend",
+					"links": {
+						"node": {
+							"title": "NodeJS",
+							"links": {
+								"homepage": {
+									"title": "Homepage",
+									"url": "http://nodejs.org"
+								},
+								"api": {
+									"title": "API",
+									"url": "http://nodejs.org/api/"
+								}
+							}
+						},
+						"express": {
+							"title": "ExpressJS",
+							"links": {
+								"homepage": {
+									"title": "Homepage",
+									"url": "http://expressjs.com"
+								},
+								"api": {
+									"title": "API",
+									"url": "http://expressjs.com/api.html"
+								}
+							}
+						},
+						"mongodb": {
+							"title": "MongoDB",
+							"links": {
+								"nodedriver": {
+									"title": "MongoDB Node.JS Driver",
+									"url": "http://mongodb.github.io/node-mongodb-native/contents.html"
+								}
+							}
+						},
+						"sharejs": {
+							"title": "ShareJS",
+							"url": "https://github.com/josephg/ShareJS/wiki"
+						},
+						"underscore": {
+							"title": "Underscore",
+							"url": "http://underscorejs.org/"
+						}
+
+					}
+				}
+			}
+		}
+	}
+}
