@@ -38,7 +38,8 @@ var config = {
 		importer_path: __dirname + '/public',
 		public_path: __dirname + '/public',
 		markdown_client: __dirname + '/node_modules/markdown/lib',
-		ace_client: __dirname + '/node_modules/share/examples/lib/ace'
+		ace_client: __dirname + '/node_modules/share/examples/lib/ace',
+		async_client: __dirname + '/node_modules/async/lib'
 	}
 };
 
@@ -50,6 +51,8 @@ app.use(express.static(config.statics.public_path));
 app.use('/lib/markdown', express.static(config.statics.markdown_client));
 //noinspection JSUnresolvedFunction
 app.use('/lib/ace', express.static(config.statics.ace_client));
+//noinspection JSUnresolvedFunction
+app.use('/lib/async', express.static(config.statics.async_client));
 
 MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
 	if (err) {
