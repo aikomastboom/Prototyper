@@ -79,41 +79,50 @@ module.exports = function (app, db, config) {
 
 	function handleMongoGetResult(options) {
 		function handleResult(err, result) {
+			var notFound = false;
 			if (err) {
-				if (options.attribute && /Data not found*/.test(err.message)) {
-					config.debug && console.log('handleMongoGetResult.handleResult Attribute not found, It will be created on first OT');
+				if (/Data not found*/.test(err.message)) {
+					config.debug && console.log('handleMongoGetResult.handleResult Document/Attribute not found, It will be created on first OT');
+					result = {};
+					if (options.attribute) {
+						if (options.type == 'json') {
+							result[options.attribute] = {};
+						} else {
+							result[options.attribute] = "";
+						}
+					}
+					notFound = true;
 				} else {
 					config.errors && console.log('ERR1 handleMongoGetResult.handleResult Error retrieving document ', options.collection, JSON.stringify(options.query), options.attribute || "", err);
 				}
-			} else {
-				if (result) {
-					var operation = null;
-					config.debug && console.log('handleMongoGetResult options', options, result);
-					var data = result;
-					if (options.attribute) {
-						data = result[options.attribute];
+			}
+			if (result || notFound) {
+				var operation = null;
+				config.debug && console.log('handleMongoGetResult options', options, result);
+				var data = result;
+				if (options.attribute) {
+					data = result[options.attribute];
+				}
+				var version = 0;
+				if (options.type == 'json') {
+					if (data instanceof String) {
+						data = JSON.parse(data);
 					}
-					var version = 0;
-					if (options.type == 'json') {
-						if (data instanceof String) {
-							data = JSON.parse(data);
+					operation = { op: [
+						{ p: [], oi: data, od: null }
+					], v: version };
+				} else if (options.type == 'text') {
+					operation = { op: [
+						{i: data, p: 0}
+					], v: version };
+				}
+				if (operation) {
+					model.applyOp(options.documentId, operation, function appliedOp(error, version) {
+						options.debug && console.log('getResult applyOp version', version);
+						if (error) {
+							options.error && console.log('ERR2 handleMongoGetResult', error);
 						}
-						operation = { op: [
-							{ p: [], oi: data, od: null }
-						], v: version };
-					} else if (options.type == 'text') {
-						operation = { op: [
-							{i: data, p: 0}
-						], v: version };
-					}
-					if (operation) {
-						model.applyOp(options.documentId, operation, function appliedOp(error, version) {
-							options.debug && console.log('getResult applyOp version', version);
-							if (error) {
-								options.error && console.log('ERR2 handleMongoGetResult', error);
-							}
-						});
-					}
+					});
 				}
 			}
 		}
@@ -294,12 +303,12 @@ module.exports = function (app, db, config) {
 					headers: req.headers
 				}
 			};
-			if(options.ext == 'md') {
+			if (options.ext == 'md') {
 				var attribute_parts = options.query.name.split('.');
-				var markdownTag='markdown__'+options.collection+'_'+attribute_parts[0]+'_'+attribute_parts[1];
+				var markdownTag = 'markdown__' + options.collection + '_' + attribute_parts[0] + '_' + attribute_parts[1];
 				//var markdownDocument=helpers.marker_prefix + markdownTag + helpers.marker_postfix;
-				var markdownDocument='<!-- @@' + markdownTag + ' -->';
-				return previewInstance.getPreviewHTML(markdownDocument, { req:options.req },
+				var markdownDocument = '<!-- @@' + markdownTag + ' -->';
+				return previewInstance.getPreviewHTML(markdownDocument, { req: options.req },
 					responder(options, res, next)
 				);
 			}
