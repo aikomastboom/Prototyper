@@ -187,29 +187,48 @@ module.exports = function (config, mongoInstance, shareModel) {
 								config.errors && console.log('ERR importer.importer ensureContent', err);
 								return callback(err);
 							}
-							context.query = { _id: parent_result._id };
+							function handleResult(err) {
+								var replacement = {
+									regExp: result,
+									value: ""
+								};
+								return callback(err, replacement);
+							}
 
-							return mongoInstance.setMongoAttribute(remainder, context, function savedAttribute(err) {
-								if (err) {
-									config.errors && console.log('ERR importer.importer setMongoAttribute', err);
+							if (context.attribute == "json") {
+								var data = null;
+								try {
+									data = JSON.parse(remainder);
+								} catch (err) {
+									config.errors && console.log('ERR importer.replaceMarkers JSON.parse(remainder)', remainder, err);
 									return callback(err);
 								}
-								var documentId = 'text:' + context.collection + ':' + parent_result._id + ':' + context.attribute;
-								console.log('3 removing documentID', documentId);
+								if (data._id) {
+									delete data._id;
+								}
+								_.extend(parent_result, data);
+								return mongoInstance.setMongoContent(parent_result, context, handleResult);
 
-								return shareModel.delete(documentId, function deletedDocument(err, result) {
+							} else {
+
+								context.query = { _id: parent_result._id };
+
+								return mongoInstance.setMongoAttribute(remainder, context, function savedAttribute(err) {
 									if (err) {
-										config.errors && console.log('ERR importer.importer shareModel.delete', documentId, err);
+										config.errors && console.log('ERR importer.importer setMongoAttribute', err);
+										return callback(err);
 									}
-									// remove import_file marker from source
-									var replacement = {
-										regExp: result,
-										value: ""
-									};
-									return callback(null, replacement);
-								})
+									var documentId = 'text:' + context.collection + ':' + parent_result._id + ':' + context.attribute;
+									console.log('3 removing documentID', documentId);
 
-							});
+									return shareModel.delete(documentId, function deletedDocument(err, result) {
+										if (err) {
+											config.errors && console.log('ERR importer.importer shareModel.delete', documentId, err);
+										}
+										handleResult(null);
+									})
+								});
+							}
 						});
 					});
 				});
