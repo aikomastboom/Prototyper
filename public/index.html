@@ -42,9 +42,9 @@
     <!-- @@template__app_templates_head__context__app_main -->
     <!-- @@remove_ -->
     <title>app/main/index</title>
-    <!--<script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>-->
-    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet" type="text/css">
-    <!--<link href="//netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css" rel="stylesheet" type="text/css">-->
+    <!--<script src="/lib/modernizr/modernizr.min.js" type="text/javascript" charset="utf-8"></script>-->
+    <link href="/lib/bootstrap/bootstrap-combined.min.css" rel="stylesheet" type="text/css">
+    <!--<link href="/lib/font-awesome/font-awesome.css" rel="stylesheet" type="text/css">-->
     <!-- @@import_file__style.css__into__app_main_style -->
     <!-- @@style__app_main_style -->
     <!-- @@_end_remove -->
@@ -66,13 +66,46 @@
         </div>
         <select data-bind="options: _availableModes(), optionsText: 'name', value: _selectedMode"></select>
     </div>
+    <!-- ko stopBinding: true --><!-- isolate navigation viewmodel, prevent main from interfering -->
     <div id="navigation" class="navbar">
         <div class="navbar-inner">
             <div class="container">
                 <a class="brand" href="#">Navigation</a>
+                <div class="dropdown" data-bind="template: {name: 'links_nav', foreach: links }"></div>
+                <script type="text/html" id="links_nav_sub">
+                    <li>
+                    <!-- ko ifnot: $data.hasOwnProperty('links') -->
+                    <a href="#" data-bind="attr: { href: $data.url(), title: $data.title()}, click: $root._openLink">
+                        <span data-bind="text: $data.title()"></span>
+                    </a>
+                    <!-- /ko -->
+                    <!-- ko if: $data.hasOwnProperty('links') -->
+                    <a href="#">
+                        <span data-bind="text: $data.title()"></span>
+                        <span data-bind="text: $root._getDepth($data)"></span>
+                        <i class="icon-arrow-right"></i>
+                    </a>
+                    <!--<ul data-bind="attr: { 'class': 'dropdown-menu ' + ($root._getDepth($data) ? 'sub-menu-'+$root._getDepth($data) : '')}">-->
+                    <ul data-bind="attr: { 'class': 'dropdown-menu sub-menu' }, template: {name: 'links_nav_sub', foreach: links }">
+                    </ul>
+                    <!-- /ko -->
+                    </li>
+                </script>
+                <script type="text/html" id="links_nav">
+                    <div class="btn-group">
+                    <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+                        <span data-bind="text: $data.title()"></span>
+                        <span class="caret"></span>
+                    </a>
+                    <!-- ko if: $data.hasOwnProperty('links') -->
+                    <ul class="dropdown-menu" data-bind="template: {name: 'links_nav_sub', foreach: links,  }"></ul>
+                    <!-- /ko -->
+                    </div>
+                </script>
             </div>
         </div>
     </div>
+    <!-- /ko -->
     <div class="navbar">
         <div class="navbar-inner">
             <div class="container">
@@ -113,13 +146,12 @@
 <!-- @@import_file__templates/scripts.html__into__app_templates_scripts -->
 <!-- @@template__app_templates_scripts__context__app_main -->
 <!-- @@remove_ -->
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js"></script>
-<script src="//underscorejs.org/underscore-min.js"></script>
-<script src="/lib/knockout/knockout.mapping-latest.debug.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.1/js/bootstrap.min.js"></script>
-<script src="/lib/knockout/knockout-bootstrap.min.js"></script>
+<script src="/lib/jquery/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/knockout/knockout-2.2.1.debug.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/underscore/underscore-min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/knockout/knockout.mapping-latest.debug.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/bootstrap/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/knockout/knockout-bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/async/async.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/markdown/markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/ace.js" type="text/javascript" charset="utf-8"></script>
@@ -128,15 +160,15 @@
 <script src="/lib/ace/mode-css.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-json.js" type="text/javascript" charset="utf-8"></script>
-<script src="//cdn.sockjs.org/sockjs-0.3.min.js"></script>
-<script src="/lib/share/share.uncompressed.js"></script>
-<script src="/lib/share/json.js"></script>
-<script src="/lib/share/ace.js"></script>
+<script src="/lib/sockjs/sockjs-0.3.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/share/share.uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/share/json.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/share/ace.js" type="text/javascript" charset="utf-8"></script>
 <!-- @@_end_remove -->
 <!-- @@template__app_main_behaviour__context__app_main -->
 <!-- @@import__app_main_behaviour_ -->
 <script>
-var debug = false;
+var debug = true;
 
 function main_functions(app, viewModel, vm_config) {
     var editor = null;
@@ -290,14 +322,8 @@ function open_in_new_tab(url) {
 
 function initViewModelMain(app, doc, vm_config) {
     var mapping = vm_config.mapping;
-    var elementId = vm_config.elementId;
-
     var snapshot = doc.snapshot;
     addComputed(snapshot);
-    var element = null;
-    if (elementId) {
-        element = document.getElementById(elementId);
-    }
     var viewModel = ko.mapping.fromJS(snapshot, mapping);
     viewModel._chosenAttributeId = ko.observable();
     viewModel._newAttribute = ko.observable();
@@ -351,7 +377,6 @@ function initViewModelMain(app, doc, vm_config) {
         console.log('closing ', attribute);
     };
 
-    ko.applyBindings(viewModel, element);
     debug && console.log('mainViewModel', viewModel);
     return viewModel;
 }
@@ -368,14 +393,61 @@ function updateViewModelMain(app, viewModel, doc, vm_config) {
     app.fn.main.updateSelectedMode();
 }
 
+
+/* crazy expensive caching tree traverse */
+function traverse(current, field, property, depth, pos) {
+    if (current == field) {
+        field._depth=depth;
+        field._pos=pos;
+        return depth;
+    } else if (current.hasOwnProperty(property)) {
+        var links = current.links();
+        depth++;
+        var found = 0;
+        for (var x = 0; x < links.length; x++) {
+            if (!found) {
+                found = traverse(links[x], field, property, depth, x);
+            } else {
+                links[x]._pos = x;
+            }
+        }
+        return found;
+    }
+    return 0;
+}
+
+
 function initViewModel(app, viewModels, key, doc, vm_config) {
     debug && console.log('initViewModel', viewModels, key, doc, vm_config);
     if (key == 'main') {
         viewModels[key] = initViewModelMain(app, doc, vm_config);
     }
     if (key == 'navigation') {
-        //viewModels[key] = app.fn.initViewModelNavigation(app, doc, mapping, elementId);
+        var mapping = vm_config.mapping;
+        var snapshot = doc.snapshot;
+
+        var viewModel = ko.mapping.fromJS(snapshot, mapping);
+        viewModel._getDepth = function (field) {
+            if (field.hasOwnProperty('_depth')) {
+                return field._depth;
+            }
+            return traverse(viewModel, field, 'links', 0, 0);
+        };
+
+        viewModel._getPos = function (field) {
+            if (field.hasOwnProperty('_pos')) {
+                return field._pos;
+            }
+            return traverse(viewModel, field, 'links', 0, 0);
+        };
+
+        viewModel._openLink = function (link) {
+            open_in_new_tab(link.url());
+        };
+
+        viewModels[key] = viewModel;
     }
+
 }
 
 function updateViewModel(app, viewModels, key, doc, vm_config) {
@@ -505,13 +577,32 @@ var app = {
     vm: {}
 };
 
+function bindViewModels(app) {
+    /* http://www.knockmeout.net/2012/05/quick-tip-skip-binding.html */
+    ko.bindingHandlers.stopBinding = {
+        init: function() {
+            return { controlsDescendantBindings: true };
+        }
+    };
+    ko.virtualElements.allowedBindings.stopBinding = true;
+
+    _.forEach(_.keys(app.vm), function (key) {
+        var viewModel  = app.vm[key];
+        var viewModelConfig = app.config.snapshot.viewModel[key];
+        var elementId = viewModelConfig.elementId;
+        var element = document.getElementById(elementId);
+        console.log('applyBindings',key,viewModel,viewModelConfig, elementId);
+        ko.applyBindings(viewModel, element);
+    })
+
+}
 function configLoaded(err) {
     if (err) {
         console.error('Error loading config', err);
     }
-    // TODO: callback called twice, first time returned app is null
-    //initializeViewModels(app, viewModels);
     console.log(app, 'Loaded', err || 'ok');
+    bindViewModels(app);
+    console.log('Viewmodels bound ok');
     app.state.running = true;
 }
 
