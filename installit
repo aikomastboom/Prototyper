@@ -7,18 +7,91 @@ set -e
 current_dir=$(cd $(dirname $0) && pwd)
 cd ${current_dir}
 
+# Knockout
 mkdir -p ./public/lib/knockout
 cd ./public/lib/knockout
-if [ ! -f ./public/lib/knockout/knockout.mapping-latest.js ]; then
+if [ ! -f ./knockout-min.js ]; then
+  curl -O https://cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js
+fi
+
+if [ ! -f ./knockout-2.2.1.debug.js ]; then
+  curl -O http://knockoutjs.com/downloads/knockout-2.2.1.debug.js
+fi
+
+if [ ! -f ./knockout.mapping-latest.js ]; then
   curl -O https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js
 fi
 
-if [ ! -f ./public/lib/knockout/knockout.mapping-latest.debug.js ]; then
+if [ ! -f ./knockout.mapping-latest.debug.js ]; then
   curl -O https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js
 fi
 
-if [ ! -f ./public/lib/knockout/knockout-bootstrap.min.js ]; then
+if [ ! -f ./knockout-bootstrap.min.js ]; then
   curl -O https://raw.github.com/billpull/knockout-bootstrap/master/build/knockout-bootstrap.min.js
+fi
+
+if [ ! -f ./knockout.validation.min.js ]; then
+  curl -O http://cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js
+
+fi
+cd ${current_dir}
+
+# Bootstrap
+mkdir -p ./public/lib/bootstrap
+cd ./public/lib/bootstrap
+if [ ! -f ./bootstrap-combined.min.css ]; then
+  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css
+fi
+cd ${current_dir}
+
+# http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings.png
+mkdir -p ./public/lib/img
+cd ./public/lib/img
+if [ ! -f ./glyphicons-halflings.png ]; then
+  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings.png
+fi
+if [ ! -f ./glyphicons-halflings-white.png ]; then
+  curl -O http://prototyper.aiko.local:8000/lib/img/glyphicons-halflings-white.png
+fi
+cd ${current_dir}
+
+# JQuery
+mkdir -p ./public/lib/jquery
+cd ./public/lib/jquery
+if [ ! -f ./jquery.min.js ]; then
+  curl -O http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js
+fi
+cd ${current_dir}
+
+# SockJS
+mkdir -p ./public/lib/sockjs
+cd ./public/lib/sockjs
+if [ ! -f ./sockjs-0.3.min.js ]; then
+  curl -O http://cdn.sockjs.org/sockjs-0.3.min.js
+fi
+cd ${current_dir}
+
+# Underscore
+mkdir -p ./public/lib/underscore
+cd ./public/lib/underscore
+if [ ! -f ./underscore-min.js ]; then
+  curl -O http://underscorejs.org/underscore-min.js
+fi
+cd ${current_dir}
+
+# //cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js
+mkdir -p ./public/lib/modernizr
+cd ./public/lib/modernizr
+if [ ! -f ./modernizr.min.js ]; then
+  curl -O http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js
+fi
+cd ${current_dir}
+
+# //netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css
+mkdir -p ./public/lib/font-awesome
+cd ./public/lib/font-awesome
+if [ ! -f ./modernizr.min.js ]; then
+  curl -O http://netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css
 fi
 cd ${current_dir}
 
