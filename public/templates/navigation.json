@@ -1,137 +1,139 @@
 {
-	"links": {
-		"prototyper": {
+	"links": [
+		{
 			"title": "Prototyper",
-			"links": {
-				"homepage": {
+			"links": [
+				{
 					"title": "Homepage",
 					"url": "http://github.com/aikomastboom/Prototyper",
 					"icon_class": "icon-home"
 				},
-				"editor": {
+				{
 					"title": "Editor",
 					"url": "/page/app/main.index.html",
 					"icon_class": "icon-home"
 				},
-				"importer": {
+				{
 					"title": "Import index",
 					"url": "/importer/index.html",
 					"icon_class": "icon-refresh"
 				},
-				"readme": {
+				{
 					"title": "Readme",
 					"url": "/page/app/main.readme.md",
 					"icon_class": "icon-info-sign"
 				}
-
-			}
+			]
 		},
-		"references": {
+		{
 			"title": "Reference",
-			"links": {
-				"frontend": {
-					"title": "Backend",
-					"links": {
-						"bootstrap": {
+			"links": [
+				{
+					"title": "Frontend",
+					"links": [
+						{
 							"title": "Bootstrap",
-							"links": {
-								"button-generator": {
+							"links": [
+								{
 									"title": "Button Generator",
 									"url": "http://www.plugolabs.com/twitter-bootstrap-button-generator/"
 								}
-							}
+							]
 						},
-						"markdown": {
+						{
 							"title": "Markdown",
-							"links": {
-								"syntax": {
+							"links": [
+								{
 									"title": "Syntax",
 									"url": "http://daringfireball.net/projects/markdown/syntax"
 								}
-
-							}
+							]
 						},
-						"knockout": {
+						{
 							"title": "Knockout",
-							"links": {
-								"homepage": {
+							"links": [
+								{
 									"title": "Home page",
 									"url": "http://knockoutjs.com/index.html",
 									"icon_class": "icon-home"
 								},
-								"documentation": {
+								{
 									"title": "Documentation",
 									"url": "http://knockoutjs.com/documentation/introduction.html"
 								},
-								"plugins-mapping": {
+								{
 									"title": "Mapping Plugin",
 									"url": "http://knockoutjs.com/documentation/plugins-mapping.html"
+								},
+								{
+									"title": "Quick Tip: Telling Knockout to Skip Binding Part of a Page",
+									"url": "http://www.knockmeout.net/2012/05/quick-tip-skip-binding.html"
 								}
-							}
+							]
 						},
-						"sharejs": {
+						{
 							"title": "ShareJS",
 							"url": "https://github.com/josephg/ShareJS/wiki"
 						},
-						"underscore": {
+						{
 							"title": "Underscore",
 							"url": "http://underscorejs.org/"
 						}
-					}
+					]
 				},
-				"backend": {
+				{
 					"title": "Backend",
-					"links": {
-						"node": {
+					"links": [
+						{
 							"title": "NodeJS",
-							"links": {
-								"homepage": {
+							"links": [
+								{
 									"title": "Homepage",
 									"url": "http://nodejs.org",
 									"icon_class": "icon-home"
 								},
-								"api": {
+								{
 									"title": "API",
 									"url": "http://nodejs.org/api/"
 								}
-							}
+							]
 						},
-						"express": {
+						{
 							"title": "ExpressJS",
-							"links": {
-								"homepage": {
+							"links": [
+								{
 									"title": "Homepage",
 									"url": "http://expressjs.com",
 									"icon_class": "icon-home"
 								},
-								"api": {
+								{
 									"title": "API",
 									"url": "http://expressjs.com/api.html"
 								}
-							}
+							]
 						},
-						"mongodb": {
+						{
 							"title": "MongoDB",
-							"links": {
-								"nodedriver": {
+							"links": [
+								{
 									"title": "MongoDB Node.JS Driver",
 									"url": "http://mongodb.github.io/node-mongodb-native/contents.html"
 								}
-							}
+							]
 						},
-						"sharejs": {
+						{
 							"title": "ShareJS",
-							"url": "https://github.com/josephg/ShareJS/wiki",
+							"url": "https://github.com/josephg/ShareJS/wiki"
 						},
-						"underscore": {
+						{
 							"title": "Underscore",
 							"url": "http://underscorejs.org/",
 							"icon_class": "icon-home"
 						}
 
-					}
+					]
 				}
-			}
+			]
 		}
-	}
+	]
 }
