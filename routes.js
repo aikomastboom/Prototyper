@@ -13,7 +13,7 @@ module.exports = function (app, db, config) {
 	var server = ShareJS.server.attach(app, config.share);
 	var model = app.model;
 
-	var mongoDataInstance = mongoData(db, config);
+	var mongoDataInstance = mongoData(db, model, config);
 	var route;
 	route = config.api.data + '/:collection/:guid/:attribute.:ext(css|less|js|html)';
 	app.get(route,

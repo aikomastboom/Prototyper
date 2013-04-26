@@ -214,8 +214,7 @@ function main_functions(app, viewModel, vm_config) {
                         op.push({
                             p: [attribute, 'mode'],
                             od: app.doc.main.snapshot[attribute].mode
-
-                        })
+                        });
                     }
                     if (mode && mode != 'none') {
                         debug && console.log('//insert', attribute, mode);
@@ -232,6 +231,7 @@ function main_functions(app, viewModel, vm_config) {
         },
 
         setDoc: function (attribute) {
+            //noinspection JSUnresolvedFunction
             editor.ace.setReadOnly(true);
             var mode = (app.doc.main.snapshot
                     && app.doc.main.snapshot[attribute]
@@ -256,7 +256,9 @@ function main_functions(app, viewModel, vm_config) {
                     console.error(error);
                     return;
                 }
+                //noinspection JSUnresolvedFunction
                 editor.doc.attach_ace(editor.ace);
+                //noinspection JSUnresolvedFunction
                 editor.ace.setReadOnly(false);
                 editor.ace.focus(); //To focus the ace editor
             });
@@ -357,7 +359,7 @@ function initViewModelMain(app, doc, vm_config) {
             }, function (err, result) {
                 //viewModel._newAttribute("");
             });
-            app.fn.main.setDoc(newValue);
+            viewModel._goToAttribute(newValue);
         }
     });
 

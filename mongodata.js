@@ -1,7 +1,7 @@
 var ObjectID = require('mongodb').ObjectID;
 
 
-module.exports = function (db, config) {
+module.exports = function (db, shareModel, config) {
 
 	/*
 	 options:
@@ -224,15 +224,73 @@ module.exports = function (db, config) {
 					}
 				};
 				config.debug && console.log('getMongoAttribute attribute_options', attribute_options);
+				function updateShareDocument(documentId, attribute_result, options) {
+					var ops = [];
+					shareModel.getSnapshot(documentId, function (err, doc) {
+						if (err) {
+							config.errors && console.log('ERR1 setMongoAttribute updateShareDocument shareModel.getSnapshot', documentId, err);
+						} else {
+							if (!doc.snapshot.hasOwnProperty(options.attribute)) {
+								ops.push({
+									p: [options.attribute],
+									oi: { guid: attribute_result._id }
+								});
+							} else if (!doc.snapshot[options.attribute].hasOwnProperty('guid')) {
+								ops.push({
+									p: [options.attribute, 'guid'],
+									oi: attribute_result._id
+								})
+							} else {
+								ops.push({
+									p: [options.attribute, 'guid'],
+									od: doc.snapshot[options.attribute].guid,
+									oi: attribute_result._id
+
+								})
+							}
+							shareModel.applyOp(documentId, { op: ops, v: doc.v }, function (err, result) {
+								if (err) {
+									config.errors && console.log('ERR1 setMongoAttribute updateShareDocument shareModel.applyOp', documentId, err);
+								}
+								//config.debug &&
+								console.log('1 shareModel.applyOp', documentId, ops, err, result);
+							});
+						}
+					});
+				}
+
+				function createShareDocument(documentId, attribute_data) {
+					var ops = [];
+					shareModel.getSnapshot(documentId, function (err, doc) {
+						if (err) {
+							config.errors && console.log('ERR2 setMongoAttribute createShareDocument shareModel.getSnapshot', documentId, err);
+						} else {
+							ops.push({
+								p: [],
+								oi: attribute_data
+
+							});
+							shareModel.applyOp(documentId, { op: ops, v: doc.v }, function (err, result) {
+								if (err) {
+									config.errors && console.log('ERR1 setMongoAttribute createShareDocument shareModel.applyOp', documentId, err);
+								}
+								//config.debug &&
+								console.log('2 shareModel.applyOp', documentId, ops, err, result);
+							});
+						}
+					});
+				}
+
 				return getMongoContent(attribute_options, function attribute(err, attribute_result) {
+					var documentId = 'json:' + options.collection + ':' + result.name;
 					if (attribute_result) {
 						config.debug && console.log('getMongoAttribute found lost attribute, reconnect');
 						if (result[options.attribute]) {
 							result[options.attribute].guid = attribute_result._id;
-							// TODO: make same change on sharedoc.
+							updateShareDocument(documentId, attribute_result, options)
 						} else {
 							result[options.attribute] = { guid: attribute_result._id };
-							// TODO: make same change on sharedoc.
+							updateShareDocument(documentId, attribute_result, options)
 						}
 						return saveData(col, result, callback);
 
@@ -246,13 +304,16 @@ module.exports = function (db, config) {
 						if (options.operation) {
 							attribute_data.version = options.operation.v;
 						}
+						var attributeDocumentId = documentId + ':' + options.attribute;
+						createShareDocument(attributeDocumentId, attribute_data);
 
 						return saveData(col, attribute_data, function saved(err, attribute_result) {
 							if (err) {
 								config.errors && console.log('ERR3 setMongoAttribute', err);
 							}
 							result[options.attribute] = { guid: attribute_result._id };
-							// TODO: make same change on sharedoc.
+
+							updateShareDocument(documentId, attribute_result, options);
 							return saveData(col, result, callback);
 						})
 					}
