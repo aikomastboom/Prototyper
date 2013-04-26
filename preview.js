@@ -38,7 +38,7 @@ module.exports = function (config, mongoDataInstance) {
 				};
 				return callback(null, {
 					regExp: new RegExp(result, 'gmi'),
-					value: '<script src="' + config.api.content + '/' + context.collection + '/' + context.name + '/' + context.attribute + '.js"></script>'
+					value: '<script src="' + config.api.content + '/' + context.collection + '/' + context.name + '/' + context.attribute + '.js" type="text/javascript" charset="utf-8"></script>'
 				});
 			}));
 
@@ -55,6 +55,22 @@ module.exports = function (config, mongoDataInstance) {
 				return callback(null, {
 					regExp: new RegExp(result, 'gmi'),
 					value: '<link href="' + config.api.content + '/' + context.collection + '/' + context.name + '/' + context.attribute + '.css" media="all" rel="stylesheet" type="text/css">'
+				});
+			}));
+
+		var less_tag = 'less__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
+		var less_regexp = new RegExp(helpers.marker_prefix + less_tag + helpers.marker_postfix);
+		promises.push(
+			helpers.replace(html, less_tag, function handleStyleMarker(result, callback) {
+				var parts = less_regexp.exec(result);
+				var context = {
+					collection: parts[1],
+					name: parts[2],
+					attribute: parts[3]
+				};
+				return callback(null, {
+					regExp: new RegExp(result, 'gmi'),
+					value: '<link href="' + config.api.content + '/' + context.collection + '/' + context.name + '/' + context.attribute + '.less" media="all" rel="stylesheet/less" type="text/css">'
 				});
 			}));
 
