@@ -45,12 +45,11 @@
     <!--<script src="/lib/modernizr/modernizr.min.js" type="text/javascript" charset="utf-8"></script>-->
     <link href="/lib/bootstrap/bootstrap-combined.min.css" rel="stylesheet" type="text/css">
     <!--<link href="/lib/font-awesome/font-awesome.css" rel="stylesheet" type="text/css">-->
-    <!-- @@import_file__style.css__into__app_main_style -->
+    <!-- @@import_file__style.less__into__app_main_style -->
     <!-- @@style__app_main_style -->
     <!-- @@_end_remove -->
     <!-- @@remove_ -->
-    <!--<link href="/style.css" rel="stylesheet" type="text/css">-->
-    <link rel="stylesheet/less" type="text/css" href="./style.css" />
+    <link rel="stylesheet/less" type="text/css" href="./style.less" />
     <script src="/lib/lessjs/less-1.3.3.min.js" type="text/javascript" charset="utf-8"></script>
     <!-- @@_end_remove -->
 </head>
@@ -112,13 +111,13 @@
         <div id="tabs">
             <ul class="nav nav-pills">
                 <li>
-                    <a class="btn" title="preview" data-bind="enable: _chosenAttributeId, click: _previewAttribute"><i class="icon-eye-open"></i></a>
+                    <a class="btn" title="preview" data-bind="css: { disabled: _chosenAttributeId() == null }, enable: _chosenAttributeId, click: _previewAttribute"><i class="icon-eye-open"></i></a>
                 </li>
-                <li class="dropdown">
-                    <a class="btn dropdown-toggle"
+                <li class="dropdown" >
+                    <a class="btn dropdown-toggle" data-bind="css: { disabled: _chosenAttributeId() == null }"
                        data-toggle="dropdown"
                        href="#"><span data-bind="text: _selectedMode().name()">
-                        Dropdown
+                        Type
                        </span>
                         <b class="caret"></b>
                     </a>
@@ -169,7 +168,7 @@
 <script src="/lib/share/share.uncompressed.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/share/json.uncompressed.js" type="text/javascript" charset="utf-8"></script>
 <!--<script src="/lib/share/json.js" type="text/javascript" charset="utf-8"></script>-->
-<script src="/lib/share/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/share/share-ace.js" type="text/javascript" charset="utf-8"></script>
 <!-- @@_end_remove -->
 <!-- @@template__app_main_behaviour__context__app_main -->
 <!-- @@import__app_main_behaviour_ -->
