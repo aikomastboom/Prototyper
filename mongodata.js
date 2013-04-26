@@ -229,8 +229,10 @@ module.exports = function (db, config) {
 						config.debug && console.log('getMongoAttribute found lost attribute, reconnect');
 						if (result[options.attribute]) {
 							result[options.attribute].guid = attribute_result._id;
+							// TODO: make same change on sharedoc.
 						} else {
 							result[options.attribute] = { guid: attribute_result._id };
+							// TODO: make same change on sharedoc.
 						}
 						return saveData(col, result, callback);
 
@@ -250,6 +252,7 @@ module.exports = function (db, config) {
 								config.errors && console.log('ERR3 setMongoAttribute', err);
 							}
 							result[options.attribute] = { guid: attribute_result._id };
+							// TODO: make same change on sharedoc.
 							return saveData(col, result, callback);
 						})
 					}

@@ -15,7 +15,7 @@
         {
             "editorId": "editor",
             "mapping" : {
-                "ignore": ["name", "version"]
+                "ignore": ["version"]
             }
         },
         "navigation":
@@ -60,19 +60,18 @@
 <!-- @@import__app_main_body_ -->
 <div id="header">
     <div id="htext">
-        Editing <b>index</b>
-        <strong data-bind="text: _keys().length"></strong>
+        Editing <b data-bind="text: $root.name()+'/'+$root._chosenAttributeId()"> </b>
+        <strong data-bind="text: _attributes().length"></strong>
 
         <div data-bind="visible: _getMode()">
             mode: <strong data-bind="text: _getMode()"></strong>
         </div>
-        <select data-bind="options: _availableModes(), optionsText: 'name', value: _selectedMode"></select>
+        <!--<select data-bind="options: _availableModes(), optionsText: 'name', value: _selectedMode"></select>-->
     </div>
     <!-- ko stopBinding: true --><!-- isolate navigation viewmodel, prevent main from interfering -->
     <div id="navigation" class="navbar navbar-inverse">
         <div class="navbar-inner">
             <div class="container">
-                <a class="brand" href="#">Navigation</a>
                 <div class="dropdown" data-bind="template: {name: 'links_nav', foreach: links }"></div>
                 <script type="text/html" id="links_nav_sub">
                     <li data-bind="css: { 'dropdown-submenu': $data.hasOwnProperty('links')}">
@@ -99,31 +98,6 @@
         </div>
     </div>
     <!-- /ko -->
-    <div class="navbar">
-        <div class="navbar-inner">
-            <div class="container">
-                <a class="brand" href="#">Currently open</a>
-                <div class="nav btn-toolbar">
-                    <!-- ko foreach: _keys() -->
-                    <div class="btn-group">
-                        <a class="btn" data-bind="text: $data,
-                            click: $root._goToAttribute,
-                            css: { active: $data == $root._chosenAttributeId() }"></a>
-                        <button class="btn"
-                                data-bind="enable: false, click: $root._closeDoc">&times;</button>
-                    </div>
-                    <!-- /ko -->
-                </div>
-                <button class="btn pull-right" title="preview" data-bind="enable: _chosenAttributeId, click: _previewAttribute"><i class="icon-eye-open"></i></button>
-                <!--<ul class="nav pull-right"><li>-->
-                <div class="nav navbar-form pull-right">
-                    <input type="text" class="span2"
-                           data-bind="value: _newAttribute"/>
-                </div>
-                <!--</li></ul>-->
-            </div>
-        </div>
-    </div>
 </div>
 <div id="content">
     <div id="tree" class="">
@@ -155,7 +129,7 @@
                     </ul>
                 </li>
                 <li class="divider-vertical"></li>
-                    <!-- ko foreach: _keys() -->
+                    <!-- ko foreach: _attributes() -->
                     <li data-bind="css: { active: $data == $root._chosenAttributeId() }">
                         <a data-bind="text: $data,
                             click: $root._goToAttribute,
@@ -193,7 +167,8 @@
 <script src="/lib/ace/mode-json.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/sockjs/sockjs-0.3.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/share/share.uncompressed.js" type="text/javascript" charset="utf-8"></script>
-<script src="/lib/share/json.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/share/json.uncompressed.js" type="text/javascript" charset="utf-8"></script>
+<!--<script src="/lib/share/json.js" type="text/javascript" charset="utf-8"></script>-->
 <script src="/lib/share/ace.js" type="text/javascript" charset="utf-8"></script>
 <!-- @@_end_remove -->
 <!-- @@template__app_main_behaviour__context__app_main -->
@@ -303,9 +278,20 @@ function main_functions(app, viewModel, vm_config) {
             return this.getModeForAttribute(attribute)
         },
 
+        noneAceMode: null, /* does not get invalidated */
+        noneMode: function () {
+            if (!this.noneAceMode){
+                this.noneAceMode = _.find(viewModel._availableModes(),
+                        function (mode) {
+                            return mode.ace() == 'none';
+                        });
+            }
+            return this.noneAceMode;
+        },
+
         getModeForAttribute: function (attribute) {
             if (!attribute) {
-                return null;
+                return this.noneMode();
             }
             var mode = _.find(viewModel._availableModes(),
                     function (mode) {
@@ -315,12 +301,7 @@ function main_functions(app, viewModel, vm_config) {
                 debug && console.log('getModeForAttribute', mode);
                 return mode;
             } else {
-                mode = _.find(viewModel._availableModes(),
-                        function (mode) {
-                            return mode.ace() == 'none';
-                        });
-                debug && console.log('getModeForAttribute', mode);
-                return mode;
+                return this.noneMode();
             }
         },
 
@@ -336,12 +317,13 @@ function main_functions(app, viewModel, vm_config) {
 }
 
 function addComputed(snapshot) {
-    snapshot._keys = _.filter(
+    snapshot._attributes = _.filter(
             Object.keys(snapshot),
             function (key) {
-                return key[0] != '_'
-                        && key != 'name'
-                        && key != 'version';
+                return snapshot[key].hasOwnProperty('guid');
+//                return key[0] != '_'
+//                        && key != 'name'
+//                        && key != 'version';
             }
     );
 }
@@ -360,7 +342,7 @@ function initViewModelMain(app, doc, vm_config) {
     viewModel._newAttribute = ko.observable();
     viewModel._selectedMode = ko.observable();
     app.fn['main'] = main_functions(app, viewModel, vm_config);
-
+    viewModel._selectedMode(app.fn.main.noneMode());
     // Behaviours
     viewModel._goToAttribute = function (attribute) {
         viewModel._chosenAttributeId(attribute);
@@ -374,8 +356,9 @@ function initViewModelMain(app, doc, vm_config) {
                 p: [newValue],
                 oi: {}
             }, function (err, result) {
-                viewModel._newAttribute("");
-            })
+                //viewModel._newAttribute("");
+            });
+            app.fn.main.setDoc(newValue);
         }
     });
 
@@ -419,6 +402,7 @@ function updateViewModelMain(app, viewModel, doc, vm_config) {
     addComputed(snapshot);
     debug && console.log('updating viewModel', snapshot, viewModel, vm_config);
     ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
+    viewModel._newAttribute("");
     debug && console.log('updated viewModel', viewModel);
     mainViewModelUpdating = false;
     app.fn.main.updateSelectedMode();
@@ -492,7 +476,7 @@ function updateViewModel(app, viewModels, key, doc, vm_config) {
 
 function initializeViewModel(app, doc, key, viewModels, vm_config) {
     initViewModel(app, viewModels, key, doc, vm_config);
-    doc.on('change', function () {
+    doc.on('change', function onChange() {
         debug && console.log(key, ' viewmodel changed!! running:', app.state.running);
         if (app.state.running) {
             debug && console.log(key, ' viewmodel changed!! updating', vm_config);
@@ -514,13 +498,21 @@ function loadLocation(location, callback) {
             console.error('error loadLocation', location, err);
             return callback(err);
         }
-        debug && console.log('opened location', location.collection, location.name, doc);
+        debug && console.log('opened location', location.collection, location.name, doc, doc.snapshot, doc.state);
         if (doc.snapshot == null) {
             debug && console.log('wait for first change', location, doc.version);
-            doc.once('change', function () {
+            doc.once('opening', function onceOpening() {
+                debug && console.log('received first opening', location, doc.snapshot);
+                //callback(null, doc);
+            });
+            doc.once('open', function onceOpen() {
+                debug && console.log('received first open', location, doc.snapshot);
+                //callback(null, doc);
+            });
+            doc.once('change', function onceChange() {
                 debug && console.log('received first change', location, doc.snapshot);
                 callback(null, doc);
-            })
+            });
         } else {
             return callback(null, doc);
         }

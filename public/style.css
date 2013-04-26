@@ -13,7 +13,7 @@ body {
     font-style: italic;
 }
 
-@header-height: 200px;
+@header-height: 80px;
 
 #header {
     position: fixed;
