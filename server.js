@@ -24,7 +24,9 @@ var config = {
 		savedelay: 200
 	},
 	share: {
-		sockjs: {},
+		sockjs: {
+			websocket: true
+		},
 		staticpath: '/lib/share',
 		db: {type: 'none'}
 	},
