@@ -501,14 +501,6 @@ function loadLocation(location, callback) {
         debug && console.log('opened location', location.collection, location.name, doc, doc.snapshot, doc.state);
         if (doc.snapshot == null) {
             debug && console.log('wait for first change', location, doc.version);
-            doc.once('opening', function onceOpening() {
-                debug && console.log('received first opening', location, doc.snapshot);
-                //callback(null, doc);
-            });
-            doc.once('open', function onceOpen() {
-                debug && console.log('received first open', location, doc.snapshot);
-                //callback(null, doc);
-            });
             doc.once('change', function onceChange() {
                 debug && console.log('received first change', location, doc.snapshot);
                 callback(null, doc);
