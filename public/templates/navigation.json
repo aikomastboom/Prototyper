@@ -72,6 +72,10 @@
 							]
 						},
 						{
+							"title": "LessCSS",
+							"url": "http://lesscss.org/"
+						},
+						{
 							"title": "ShareJS",
 							"url": "https://github.com/josephg/ShareJS/wiki"
 						},

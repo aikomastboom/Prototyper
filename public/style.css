@@ -13,11 +13,13 @@ body {
     font-style: italic;
 }
 
+@header-height: 200px;
+
 #header {
     position: fixed;
     top: 0;
     right: 0;
-    height: 200px;
+    height: @header-height;
     width: 100%;
     background-color: black;
 }
@@ -32,42 +34,45 @@ body {
     display: inline;
 }
 
+@content-divider: 150px;
+
 #content {
     position: fixed;
-    top:200px;
+    top: @header-height;
     width: 100%;
     bottom: 0;
 }
 
-#editor {
+#main {
+    left: @content-divider;
+    right: 0;
+}
+
+@tabs-height: 38px;
+#tabs {
     margin: 0;
     position: absolute;
     top: 0;
+    height: @tabs-height;
+    left: @content-divider;
+    right: 0;
+    /*background-color: lightpink;*/
+}
+#editor {
+    margin: 0;
+    position: absolute;
+    top: @tabs-height;
     bottom: 0;
-    left: 370px;
+    left: @content-divider;
     right: 0;
 }
 
 #tree {
     left:0;
-    right:370px;
+    right:@content-divider;
     /*bottom: 0px;*/
 }
 #htext a {
     color: #aaf;
     font-weight: bold;
 }
-
-/* MULTI-LEVEL DROPDOWNS FOR BOOTSTRAP */
-.dropdown-menu .sub-menu {
-    left: 100%;
-    position: relative;
-    top: -31px;
-    visibility: hidden;
-    margin-top: -1px;
-}
-.dropdown-menu li:hover > .sub-menu {
-    visibility: visible;
-    display: block;
-}
-/* END MULTI-LEVEL DROPDOWNS FOR BOOTSTRAP */
