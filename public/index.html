@@ -281,7 +281,7 @@ function main_functions(app, viewModel, vm_config) {
 
         noneAceMode: null, /* does not get invalidated */
         noneMode: function () {
-            if (!this.noneAceMode){
+            if (!this.noneAceMode) {
                 this.noneAceMode = _.find(viewModel._availableModes(),
                         function (mode) {
                             return mode.ace() == 'none';
@@ -403,15 +403,14 @@ function updateViewModelMain(app, viewModel, doc, vm_config) {
     viewModel._newAttribute("");
     debug && console.log('updated viewModel', viewModel);
     mainViewModelUpdating = false;
-    app.fn.main.updateSelectedMode();
 }
 
 
 /* crazy expensive caching tree traverse */
 function traverse(current, field, property, depth, pos) {
     if (current == field) {
-        field._depth=depth;
-        field._pos=pos;
+        field._depth = depth;
+        field._pos = pos;
         return depth;
     } else if (current.hasOwnProperty(property)) {
         var links = current.links();
@@ -486,7 +485,6 @@ function initializeViewModel(app, doc, key, viewModels, vm_config) {
             }
         }
     });
-
 }
 
 function loadLocation(location, callback) {
@@ -543,7 +541,7 @@ function handleConfigKey(app, key, snapshot, viewModels, callback) {
                 return callback(err);
             } else {
                 app.doc[key] = key_doc;
-                if (vm_config) {
+                if (vm_config && !app.state.vm.bound.hasOwnProperty(key)) {
                     initializeViewModel(app, key_doc, key, viewModels, vm_config);
                 }
             }
@@ -586,7 +584,7 @@ var config_location = {
 var app = {
     state: {
         running: false,
-        vm: {bound : {}}
+        vm: {bound: {}}
     },
     doc: {},
     fn: {},
@@ -596,7 +594,7 @@ var app = {
 function initKnockout() {
     /* http://www.knockmeout.net/2012/05/quick-tip-skip-binding.html */
     ko.bindingHandlers.stopBinding = {
-        init: function() {
+        init: function () {
             return { controlsDescendantBindings: true };
         }
     };
@@ -607,23 +605,22 @@ function bindViewModels(app) {
         if (key in app.state.vm.bound) {
             debug && console.log('bindViewModels bindings already applied for', key);
         } else {
-            var viewModel  = app.vm[key];
+            var viewModel = app.vm[key];
             var viewModelConfig = app.config.snapshot.viewModel[key];
             var elementId = viewModelConfig.elementId;
             var element = document.getElementById(elementId);
-            console.log('bindViewModels applyBindings',key,viewModel,viewModelConfig, elementId);
+            debug && console.log('bindViewModels applyBindings', key, viewModel, viewModelConfig, elementId);
             ko.applyBindings(viewModel, element);
             app.state.vm.bound[key] = elementId;
         }
     });
-    console.log('Viewmodels bound', 'ok');
+    debug && console.log('Viewmodels bound', 'ok');
 }
 function configLoaded(err) {
     if (err) {
         console.error('Error loading config', err);
     }
     console.log(app, 'Loaded', err || 'ok');
-    console.log('app.state.running', app.state.running);
 
     if (app.state.running == false) {
         initKnockout();
@@ -631,7 +628,6 @@ function configLoaded(err) {
     bindViewModels(app);
     app.state.running = true;
 }
-console.log('app.state.running', app.state.running);
 loadConfig(app, config_location, app.vm, configLoaded);
 
 </script>
