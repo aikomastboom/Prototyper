@@ -82,6 +82,10 @@
 						{
 							"title": "Underscore",
 							"url": "http://underscorejs.org/"
+						},
+						{
+							"title": "ACE",
+							"url": "http://ace.ajax.org/#nav=api"
 						}
 					]
 				},

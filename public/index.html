@@ -29,6 +29,7 @@
     { "name": "none", "ace":"none" },
     { "name": "HTML", "ace":"html" },
     { "name": "Style", "ace":"css" },
+    { "name": "Less", "ace":"css" },
     { "name": "Behaviour", "ace":"javascript" },
     { "name": "Text", "ace":"markdown" },
     { "name": "JSON", "ace":"json" }
@@ -137,8 +138,10 @@
                     <!-- /ko -->
                 <li>
                 <div class="nav navbar-form pull-right">
-                    <input type="text" class="span2"
-                           data-bind="value: _newAttribute"/>
+                    <label>
+                        <input type="text" class="span2"
+                               data-bind="value: _newAttribute"/>
+                    </label>
                 </div>
                 </li>
             </ul>
@@ -164,6 +167,7 @@
 <script src="/lib/ace/mode-css.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-markdown.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/ace/mode-json.js" type="text/javascript" charset="utf-8"></script>
+<!--<script src="/lib/ace/mode-less.js" type="text/javascript" charset="utf-8"></script>-->
 <script src="/lib/sockjs/sockjs-0.3.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/share/share.uncompressed.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/share/json.uncompressed.js" type="text/javascript" charset="utf-8"></script>
@@ -177,6 +181,8 @@ var debug = false;
 
 function main_functions(app, viewModel, vm_config) {
     var editor = null;
+    var cursorPositions = {};
+
     if (!app.state.editor || (app.state.editor.editorId |= vm_config.editorId)) {
         var aceInstance = ace.edit(vm_config.editorId || "editor");
         editor = {
@@ -246,6 +252,8 @@ function main_functions(app, viewModel, vm_config) {
             sharejs.open(docName, 'text', function (error, newDoc) {
 
                 if (editor.doc != null) {
+                    debug && console.log('current cursor position', editor.ace.getCursorPosition());
+                    cursorPositions[editor.doc.name] = editor.ace.getCursorPosition();
                     editor.doc.close();
                     editor.doc.detach_ace();
                 }
@@ -259,7 +267,20 @@ function main_functions(app, viewModel, vm_config) {
                 //noinspection JSUnresolvedFunction
                 editor.doc.attach_ace(editor.ace);
                 //noinspection JSUnresolvedFunction
+
+                var moveTo = cursorPositions[editor.doc.name];
+                if (!moveTo) {
+                    moveTo = {
+                        row: 0,
+                        column: 0
+                    }
+                }
+                debug && console.log('moveTo',moveTo);
+                editor.ace.moveCursorToPosition(moveTo);
+                editor.ace.centerSelection();
+
                 editor.ace.setReadOnly(false);
+
                 editor.ace.focus(); //To focus the ace editor
             });
         },
@@ -491,16 +512,19 @@ function loadLocation(location, callback) {
     debug && console.log('opening location', location.collection, location.name);
     return sharejs.open('json:' + location.collection + ':' + location.name, 'json', function (err, doc) {
         if (err) {
-            console.error('error loadLocation', location, err);
+            console.error('error loadLocation', location, err, doc);
             return callback(err);
         }
         doc.on('error', function (err) {
-            console.error('error loadLocation', location, err);
+            console.error('event error loadLocation', location, err, doc.state, doc);
+        });
+        doc.on('closed', function (err, data) {
+            debug && console.log('doc', doc, 'closing', err,'data', data);
         });
         debug && console.log('opened location', location.collection, location.name, doc, doc.snapshot, doc.state);
         if (doc.snapshot == null) {
             debug && console.log('wait for first change', location, doc.version);
-            doc.once('change', function onceChange() {
+            return doc.once('change', function onceChange() {
                 debug && console.log('received first change', location, doc.snapshot);
                 callback(null, doc);
             });
