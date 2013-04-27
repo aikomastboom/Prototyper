@@ -292,7 +292,7 @@ module.exports = function (db, shareModel, config) {
 				});
 				return shareModel.applyOp(documentId, { op: ops, v: doc.v }, function (err, result) {
 					if (err) {
-						config.errors && console.log('ERR setMongoAttribute createShareDocument shareModel.applyOp', documentId, err);
+						config.errors && console.log('WARN setMongoAttribute createShareDocument shareModel.applyOp', documentId, err);
 						return callback && callback();
 					}
 					config.debug && console.log('createShareDocument shareModel.applyOp', documentId, ops, err, result);

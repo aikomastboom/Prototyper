@@ -291,6 +291,7 @@ module.exports = function (app, db, config) {
 				var attribute_parts = options.query.name.split('.');
 				var markdownTag = 'markdown__' + options.collection + '_' + attribute_parts[0] + '_' + attribute_parts[1];
 				//var markdownDocument=helpers.marker_prefix + markdownTag + helpers.marker_postfix;
+				// TODO: remove hardcoded marker
 				var markdownDocument = '<!-- @@' + markdownTag + ' -->';
 				return previewInstance.getPreviewHTML(markdownDocument, { req: options.req },
 					responder(options, res, next)
@@ -328,7 +329,7 @@ module.exports = function (app, db, config) {
 		}
 	);
 
-	var importerInstance = importer(config, mongoDataInstance, model);
+	var importerInstance = importer(config, mongoDataInstance);
 
 	route = config.api.importer + '/:filename';
 	app.get(route, function importFile(req, res, next) {

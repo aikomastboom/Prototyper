@@ -5,7 +5,7 @@ var path = require('path');
 var fs = require('fs');
 
 
-module.exports = function (config, mongoInstance, shareModel) {
+module.exports = function (config, mongoInstance) {
 
 	var import_leftovers_tag = 'import_leftovers__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
 	var import_leftovers_regexp = new RegExp(helpers.marker_prefix + import_leftovers_tag + helpers.marker_postfix);
@@ -164,11 +164,15 @@ module.exports = function (config, mongoInstance, shareModel) {
 					delete data._id;
 				}
 				_.extend(parent_result, data);
-				return mongoInstance.setMongoContent(parent_result, context, function (err, result) {
+				return mongoInstance.setMongoContent(parent_result, context, function (err) {
+					if (err) {
+						config.errors && console.log('ERR importer.importRemainder setMongoContent', err);
+						return callback(err);
+					}
 					var documentId = 'json:' + context.collection + ':' + context.name;
 					var keys = _.keys(parent_result); // reset all attributes;
 					return mongoInstance.updateShareDocument(documentId, parent_result, keys, function () {
-						return replaceWithEmptyContent(err);
+						return replaceWithEmptyContent(null);
 					});
 				});
 			} else {
