@@ -36,8 +36,8 @@ all functionality is found index.html
         var main_documentId = 'json:app:main'
         sharejs.open( main_documentId, 'json', function (error, mainDoc) {
 
-        // [type:collection:nameDoc.id:attribute]
-        var attribute_documentId = 'text:app:'+mainDoc._id + ':index';
+            // [type:collection:name:attribute]
+            var attribute_documentId = 'text:app:' + mainDoc.name + ':index';
             sharejs.open( attribute_documentId, 'text', function (error, attributeDoc) {
 
             // see https://github.com/josephg/ShareJS/wiki
