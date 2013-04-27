@@ -1,4 +1,5 @@
 var ObjectID = require('mongodb').ObjectID;
+var _ = require('underscore');
 
 
 module.exports = function (db, shareModel, config) {
@@ -16,7 +17,7 @@ module.exports = function (db, shareModel, config) {
 				return callback(err);
 			}
 			if (!options.query) {
-				return callback(new Error('Data not found ' + options.collection + '/ missing query'));
+				return callback(new Error('Data not found ' + options.collection + '/ missing query'), null, col);
 			}
 			if (options.query._id && !(options.query._id instanceof Object)) {
 				try {
@@ -32,7 +33,7 @@ module.exports = function (db, shareModel, config) {
 					return callback(err);
 				}
 				if (!result) {
-					return callback(new Error('Data not found ' + options.collection + '/' + JSON.stringify(options.query)));
+					return callback(new Error('Data not found ' + options.collection + '/' + JSON.stringify(options.query)), null, col);
 				}
 				return callback(null, result, col);
 			});
@@ -55,26 +56,31 @@ module.exports = function (db, shareModel, config) {
 					name: options.name
 				}
 			}
-			function stopEnsuring(err, result) {
+			function stopEnsuring(err, result, col) {
 				config.debug && console.log('Stop ensuring', options);
 				ensuring = false;
 				if (err) {
 					return callback(err);
 				}
-				return callback(null, result);
+				return callback(null, result, col);
 			}
 
-			getMongoContent(options, function document(err, result) {
+			getMongoContent(options, function document(err, result, col) {
 				if (err) {
 					if (/Data not found*/.test(err.message)) {
-						return setMongoContent({name: options.name}, options,
-							stopEnsuring
-						)
+						var documentId = 'json:' + options.collection + ':' + options.name;
+						var data = {name: options.name};
+						return setMongoContent(data, options, function (err, content_result, col) {
+							var keys = _.keys(data); // reset all attributes;
+							return updateShareDocument(documentId, data, keys, function updatedShareDocument() {
+								stopEnsuring(err, content_result, col);
+							});
+						});
 					} else {
 						return stopEnsuring(err);
 					}
 				} else {
-					return stopEnsuring(null, result);
+					return stopEnsuring(null, result, col);
 				}
 			});
 		}
@@ -156,8 +162,16 @@ module.exports = function (db, shareModel, config) {
 		if (data._id && !(data._id instanceof Object)) {
 			data._id = new ObjectID.createFromHexString(data._id);
 		}
-		config.debug && console.log('saving', data._id);
-		collection.save(data, {safe: true}, callback);
+		config.debug && console.log('saveData saving', data._id);
+		collection.save(data, {safe: true}, function (err, result2, result3) {
+			if (err) {
+				config.errors && console.log('ERR saveData', err);
+				return callback(err);
+
+			}
+			config.debug && console.log('saveData saved', data._id, result2, result3);
+			return callback(null, data, collection);
+		});
 	}
 
 	function setMongoContent(data, options, callback) {
@@ -190,136 +204,148 @@ module.exports = function (db, shareModel, config) {
 
 	function setMongoAttribute(data, options, callback) {
 		config.debug && console.log('setMongoAttribute options', options);
-		getMongoContent(options, function document(err, result, col) {
+		ensureContent(options, function document(err, result, col) {
 			if (err) {
 				config.errors && console.log('ERR1 setMongoAttribute', err);
 				return callback(err);
 			}
 			var attribute_options = {
-				collection: options.collection
+				collection: options.collection,
+				name: result.name + '.' + options.attribute
 			};
 			if (result.hasOwnProperty(options.attribute)
 				&& result[options.attribute].guid) {
-				config.debug && console.log('getMongoAttribute parent found, get child and save');
-				attribute_options.query = {_id: result[options.attribute].guid};
-				return getMongoContent(attribute_options, function attribute(err, attribute_result, col) {
+				attribute_options.query = {
+					_id: result[options.attribute].guid
+				};
+			} else {
+				attribute_options.query = {
+					parent: result._id,
+					name: result.name + '.' + options.attribute
+				}
+
+			}
+
+			config.debug && console.log('getMongoAttribute parent found, get child and save', result, attribute_options);
+			return ensureContent(attribute_options, function attribute(err, attribute_result) {
+				if (err) {
+					config.errors && console.log('ERR2 setMongoAttribute ensureContent', err);
+					return callback(err);
+				}
+				if (result[options.attribute]) {
+					result[options.attribute].guid = attribute_result._id;
+				} else {
+					result[options.attribute] = { guid: attribute_result._id };
+				}
+
+				attribute_result.parent = result._id;
+				attribute_result.name = result.name + '.' + options.attribute;
+				attribute_result[options.attribute] = data;
+				if (options.operation) {
+					attribute_result.version = options.operation.v;
+				}
+				var documentId = 'json:' + options.collection + ':' + result.name;
+				var attributeDocumentId = documentId + ':' + options.attribute;
+				return saveData(col, attribute_result, function saved(err) {
 					if (err) {
-						config.errors && console.log('ERR2 setMongoAttribute', err);
+						config.errors && console.log('ERR3 setMongoAttribute', err);
 						return callback(err);
 					}
-					attribute_result[options.attribute] = data;
-					if (options.operation) {
-						attribute_result.version = options.operation.v;
-					}
-					attribute_result.parent = result._id;
-					return saveData(col, attribute_result, callback);
-				});
-			} else {
-				config.debug && console.log('getMongoAttribute try direct lookup');
-				attribute_options = {
-					collection: options.collection,
-					query: {
-						parent: result._id,
-						name: result.name + '.' + options.attribute
-					}
-				};
-				config.debug && console.log('getMongoAttribute attribute_options', attribute_options);
-				function updateShareDocument(documentId, attribute_result, options) {
-					var ops = [];
-					shareModel.getSnapshot(documentId, function (err, doc) {
-						if (err) {
-							config.errors && console.log('ERR1 setMongoAttribute updateShareDocument shareModel.getSnapshot', documentId, err);
-						} else {
-							if (!doc.snapshot.hasOwnProperty(options.attribute)) {
-								ops.push({
-									p: [options.attribute],
-									oi: { guid: attribute_result._id }
-								});
-							} else if (!doc.snapshot[options.attribute].hasOwnProperty('guid')) {
-								ops.push({
-									p: [options.attribute, 'guid'],
-									oi: attribute_result._id
-								})
-							} else {
-								ops.push({
-									p: [options.attribute, 'guid'],
-									od: doc.snapshot[options.attribute].guid,
-									oi: attribute_result._id
-
-								})
-							}
-							shareModel.applyOp(documentId, { op: ops, v: doc.v }, function (err, result) {
-								if (err) {
-									config.errors && console.log('ERR1 setMongoAttribute updateShareDocument shareModel.applyOp', documentId, err);
-								}
-								//config.debug &&
-								console.log('1 shareModel.applyOp', documentId, ops, err, result);
-							});
-						}
-					});
-				}
-
-				function createShareDocument(documentId, attribute_data) {
-					var ops = [];
-					shareModel.getSnapshot(documentId, function (err, doc) {
-						if (err) {
-							config.errors && console.log('ERR2 setMongoAttribute createShareDocument shareModel.getSnapshot', documentId, err);
-						} else {
-							ops.push({
-								p: [],
-								oi: attribute_data
-
-							});
-							shareModel.applyOp(documentId, { op: ops, v: doc.v }, function (err, result) {
-								if (err) {
-									config.errors && console.log('ERR1 setMongoAttribute createShareDocument shareModel.applyOp', documentId, err);
-								}
-								//config.debug &&
-								console.log('2 shareModel.applyOp', documentId, ops, err, result);
-							});
-						}
-					});
-				}
-
-				return getMongoContent(attribute_options, function attribute(err, attribute_result) {
-					var documentId = 'json:' + options.collection + ':' + result.name;
-					if (attribute_result) {
-						config.debug && console.log('getMongoAttribute found lost attribute, reconnect');
-						if (result[options.attribute]) {
-							result[options.attribute].guid = attribute_result._id;
-							updateShareDocument(documentId, attribute_result, options)
-						} else {
-							result[options.attribute] = { guid: attribute_result._id };
-							updateShareDocument(documentId, attribute_result, options)
-						}
-						return saveData(col, result, callback);
-
-					} else {
-						config.debug && console.log('getMongoAttribute field does not exist yet. need to create doc first.');
-						var attribute_data = {
-							name: result.name + '.' + options.attribute,
-							parent: result._id
-						};
-						attribute_data[options.attribute] = data;
-						if (options.operation) {
-							attribute_data.version = options.operation.v;
-						}
-						var attributeDocumentId = documentId + ':' + options.attribute;
-						createShareDocument(attributeDocumentId, attribute_data);
-
-						return saveData(col, attribute_data, function saved(err, attribute_result) {
+					var keys = _.keys(attribute_result); // reset all attributes;
+					return updateShareDocument(attributeDocumentId, attribute_result, keys, function updatedShareAttribute() {
+						return saveData(col, result, function saved(err) {
 							if (err) {
 								config.errors && console.log('ERR3 setMongoAttribute', err);
+								return callback(err);
 							}
-							result[options.attribute] = { guid: attribute_result._id };
+							var path = [options.attribute, 'guid']; // reset just guid attribute;
+							return updateShareDocumentPath(documentId, result, path, function updatedShareContent() {
+								return callback(null, attribute_result, col);
+							});
+						});
+					});
+				});
+			});
+		});
+	}
 
-							updateShareDocument(documentId, attribute_result, options);
-							return saveData(col, result, callback);
-						})
+	function updateShareDocument(documentId, data, keys, callback) {
+		var ops = [];
+		return shareModel.getSnapshot(documentId, function (err, doc) {
+			if (err) {
+				config.errors && console.log('WARN createShareDocument shareModel.getSnapshot', documentId, err);
+				return callback && callback();
+			} else {
+				_.forEach(keys, function (key) {
+					if (key != '_id') {
+						var op = {
+							p: [key]
+						};
+						if (doc.snapshot[key]) {
+							op.od = doc.snapshot[key];
+						}
+						if (data[key]) {
+							op.oi = data[key];
+						}
+						ops.push(op);
 					}
 				});
+				return shareModel.applyOp(documentId, { op: ops, v: doc.v }, function (err, result) {
+					if (err) {
+						config.errors && console.log('ERR setMongoAttribute createShareDocument shareModel.applyOp', documentId, err);
+						return callback && callback();
+					}
+					config.debug && console.log('createShareDocument shareModel.applyOp', documentId, ops, err, result);
+					return callback && callback();
+				});
 			}
-		})
+		});
+	}
+
+	function updateShareDocumentPath(documentId, data, path, callback) {
+		shareModel.getSnapshot(documentId, function (err, doc) {
+			if (err) {
+				config.errors && console.log('WARN setMongoAttribute updateShareDocumentPath shareModel.getSnapshot', documentId, err);
+				return callback && callback();
+			} else {
+				var sub_data = data;
+				var sub_snapshot_data = doc.snapshot;
+				var equal_path = [];
+				var found = false;
+				for (var x = 0; !found && x < path.length; x++) {
+					var key = path[x];
+					if (sub_data && sub_data.hasOwnProperty(key) &&
+						sub_snapshot_data && sub_snapshot_data.hasOwnProperty(key)) {
+						sub_data = sub_data[key];
+						sub_snapshot_data = sub_snapshot_data[key];
+						equal_path.push(key);
+					} else if (!sub_snapshot_data || !sub_snapshot_data.hasOwnProperty(key)) {
+						found = true;
+					}
+				}
+				if (found) {
+					path = equal_path;
+				}
+				var op = {
+					p: path
+				};
+				if (sub_data) {
+					op.oi = sub_data;
+				}
+				if (sub_snapshot_data) {
+					op.od = sub_snapshot_data;
+				}
+				return shareModel.applyOp(documentId, { op: [op], v: doc.v }, function (err, result) {
+					if (err) {
+						config.errors && console.log('ERR updateShareDocumentPath shareModel.applyOp', documentId, err);
+						return callback && callback();
+					}
+					config.debug && console.log('updateShareDocumentPath shareModel.applyOp', documentId, op, err, result);
+					return callback && callback();
+
+				});
+			}
+		});
 	}
 
 	return {
@@ -327,7 +353,8 @@ module.exports = function (db, shareModel, config) {
 		getMongoContent: getMongoContent,
 		setMongoAttribute: setMongoAttribute,
 		setMongoContent: setMongoContent,
-		ensureContent: ensureContent
+		ensureContent: ensureContent,
+		updateShareDocument: updateShareDocument
 	};
 };
 

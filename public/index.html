@@ -241,7 +241,7 @@ function main_functions(app, viewModel, vm_config) {
             this.setMode(attribute, mode);
             //document.title = attribute;
 
-            var docName = 'text:app:' + viewModel._id() + ':' + attribute;
+            var docName = 'text:app:' + viewModel.name() + ':' + attribute;
 
             sharejs.open(docName, 'text', function (error, newDoc) {
 
@@ -322,9 +322,6 @@ function addComputed(snapshot) {
             Object.keys(snapshot),
             function (key) {
                 return snapshot[key].hasOwnProperty('guid');
-//                return key[0] != '_'
-//                        && key != 'name'
-//                        && key != 'version';
             }
     );
 }
@@ -405,6 +402,7 @@ function updateViewModelMain(app, viewModel, doc, vm_config) {
     ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
     viewModel._newAttribute("");
     debug && console.log('updated viewModel', viewModel);
+    app.fn.main.setDoc(viewModel._chosenAttributeId());
     mainViewModelUpdating = false;
     app.fn.main.updateSelectedMode();
 }
@@ -478,9 +476,9 @@ function updateViewModel(app, viewModels, key, doc, vm_config) {
 function initializeViewModel(app, doc, key, viewModels, vm_config) {
     initViewModel(app, viewModels, key, doc, vm_config);
     doc.on('change', function onChange() {
-        debug && console.log(key, ' viewmodel changed!! running:', app.state.running);
+        debug && console.log(key, ' viewModel changed!! running:', app.state.running);
         if (app.state.running) {
-            debug && console.log(key, ' viewmodel changed!! updating', vm_config);
+            debug && console.log(key, ' viewModel changed!! updating', vm_config);
             if (viewModels[key]) {
                 updateViewModel(app, viewModels, key, doc, vm_config);
             } else {
@@ -499,6 +497,9 @@ function loadLocation(location, callback) {
             console.error('error loadLocation', location, err);
             return callback(err);
         }
+        doc.on('error', function (err) {
+            console.error('error loadLocation', location, err);
+        });
         debug && console.log('opened location', location.collection, location.name, doc, doc.snapshot, doc.state);
         if (doc.snapshot == null) {
             debug && console.log('wait for first change', location, doc.version);

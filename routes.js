@@ -140,7 +140,8 @@ module.exports = function (app, db, config) {
 			attribute: null
 		};
 		if (splitId.length == 4) {
-			options.query = {_id: splitId[2]};
+//			options.query = {_id: splitId[2]};
+			options.query = {name: splitId[2]};
 			options.attribute = splitId[3];
 			mongoDataInstance.getMongoAttribute(options, handleMongoGetResult(options));
 		} else {
@@ -183,26 +184,8 @@ module.exports = function (app, db, config) {
 				config.errors && console.log('ERR1 handleMongoAttributeSetResult Error while saving document ', options.collection, JSON.stringify(options.query), options.attribute || "", err);
 				return callback(err);
 			}
-			options.debug && console.log('current', current, 'result', result);
-			if (result.hasOwnProperty('_id')) {
-				config.debug && console.log('// new object created. need to update the parent object.');
-				var pieces = options.documentId.split(':');
-				var parentDocId = pieces[0] + ':' + pieces[1] + ':' + pieces[2];
-				var operation = { op: [
-					{ p: [options.attribute], oi: { guid: result._id }, od: null }
-				], v: options.operation.v };
-
-				return model.applyOp(parentDocId, operation, function appliedOp(error, version) {
-					config.debug && console.log('setResult applyOp parent version', version);
-					if (error) {
-						config.error && console.log('ERR2 handleMongoAttributeSetResult', error);
-						return callback(error);
-					}
-					return callback(null, version);
-				})
-			} else {
+			config.debug && console.log('current', current, 'result', result);
 				return callback(null, null);
-			}
 		}
 
 		return handleResult;
@@ -238,7 +221,7 @@ module.exports = function (app, db, config) {
 				handleMongoAttributeSetResult(args.options, data,
 					function handleApplyOpResult(err, version) {
 						if (err) {
-							config.errors && console.log('ERR1 applyOp', version, err);
+							config.errors && console.log('ERR1 applyOp', documentId, version, err);
 						}
 					}));
 		};
@@ -264,7 +247,8 @@ module.exports = function (app, db, config) {
 		};
 		var attribute = false;
 		if (splitId.length == 4) {
-			options.query = {_id: splitId[2]};
+//			options.query = {_id: splitId[2]};
+			options.query = {name: splitId[2]};
 			options.attribute = splitId[3];
 			attribute = true;
 		} else {

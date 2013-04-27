@@ -47,18 +47,7 @@ module.exports = function (config, mongoInstance, shareModel) {
 									config.errors && console.log('ERR importer.importer setMongoAttribute', err);
 									return cb(err);
 								}
-								var documentId = 'text:' + leftover.replacement.collection + ':' + parent_result._id + ':' + leftover.replacement.attribute;
-								console.log('1 removing documentID', documentId);
-
-								return shareModel.delete(documentId, function deletedDocument(err) {
-									if (err) {
-										config.errors && console.log('ERR importer.importer shareModel.delete', documentId, err);
-										//return cb(err);
-									}
-
-									return cb(null, remainder);
-								})
-
+								return cb(null, remainder);
 							})
 						})
 					} else {
@@ -133,24 +122,21 @@ module.exports = function (config, mongoInstance, shareModel) {
 								delete data._id;
 							}
 							_.extend(parent_result, data);
-							return mongoInstance.setMongoContent(parent_result, context, handleResult);
+							return mongoInstance.setMongoContent(parent_result, context, function (err) {
+								var documentId = 'json:' + context.collection + ':' + context.name;
+								var keys = _.keys(parent_result); // reset all attributes;
+								return mongoInstance.updateShareDocument(documentId, parent_result, keys, function () {
+									return handleResult(err);
+								});
+							});
 						} else {
 							context.query = { _id: parent_result._id };
-
 							return mongoInstance.setMongoAttribute(remainder, context, function savedAttribute(err) {
 								if (err) {
-									config.errors && console.log('ERR importer.importer setMongoAttribute', err);
+									config.errors && console.log('ERR1 importer.importer setMongoAttribute', err);
 									return callback(err);
 								}
-								var documentId = 'text:' + context.collection + ':' + parent_result._id + ':' + context.attribute;
-								console.log('2 removing documentID', documentId);
-								return shareModel.delete(documentId, function deletedDocument(err) {
-									if (err) {
-										config.errors && console.log('ERR importer.importer shareModel.delete', documentId, err);
-									}
-									handleResult(null);
-								})
-
+								return handleResult(null);
 							});
 						}
 					})
@@ -207,26 +193,21 @@ module.exports = function (config, mongoInstance, shareModel) {
 									delete data._id;
 								}
 								_.extend(parent_result, data);
-								return mongoInstance.setMongoContent(parent_result, context, handleResult);
-
+								return mongoInstance.setMongoContent(parent_result, context, function (err, result) {
+									var documentId = 'json:' + context.collection + ':' + context.name;
+									var keys = _.keys(parent_result); // reset all attributes;
+									return mongoInstance.updateShareDocument(documentId, parent_result, keys, function () {
+										return handleResult(err);
+									});
+								});
 							} else {
-
 								context.query = { _id: parent_result._id };
-
 								return mongoInstance.setMongoAttribute(remainder, context, function savedAttribute(err) {
 									if (err) {
-										config.errors && console.log('ERR importer.importer setMongoAttribute', err);
+										config.errors && console.log('ERR2 importer.importer setMongoAttribute', err);
 										return callback(err);
 									}
-									var documentId = 'text:' + context.collection + ':' + parent_result._id + ':' + context.attribute;
-									console.log('3 removing documentID', documentId);
-
-									return shareModel.delete(documentId, function deletedDocument(err, result) {
-										if (err) {
-											config.errors && console.log('ERR importer.importer shareModel.delete', documentId, err);
-										}
-										handleResult(null);
-									})
+									return handleResult(null);
 								});
 							}
 						});
