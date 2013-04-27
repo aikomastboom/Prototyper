@@ -185,7 +185,7 @@ module.exports = function (app, db, config) {
 				return callback(err);
 			}
 			config.debug && console.log('current', current, 'result', result);
-				return callback(null, null);
+			return callback(null, null);
 		}
 
 		return handleResult;
@@ -239,7 +239,8 @@ module.exports = function (app, db, config) {
 			type: splitId[0],
 			collection: splitId[1],
 			attribute: null,
-			operation: operation
+			operation: operation,
+			no_share: true // prevent circular updates.
 		};
 		var timer = {
 			current: current,
