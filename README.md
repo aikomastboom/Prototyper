@@ -6,16 +6,13 @@ Change the mongo url to your mongodb
 
     npm start
 
-[/index.html](http://localhost:8000/index.html)
 
-Import content defined in index.html into db:
-
-[/importer/index.html](http://localhost:8000/importer/index.html)
-
-
-Dogfood viewing of index.html from db:
-
-[/page/app/main.index.html](http://localhost:8000/page/app/main.index.html)
+1. Import content defined in index.html into db:
+    [/importer/index.html](http://localhost:8000/importer/index.html)
+1. View the index.html
+    [/index.html](http://localhost:8000/index.html)
+1. Dogfood viewing of index.html from db:
+    [/page/app/main.index.html](http://localhost:8000/page/app/main.index.html)
 
 
 # Features:
@@ -117,13 +114,19 @@ Where type is:
 
 script   ->
 
-    <script src="/content/collection/name/attribute.js"/>
+    <script src="/content/collection/name/attribute.js" type="text/javascript" charset="utf-8"></script>
 
 style    ->
 
     <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
 
 
+less    ->
+
+    <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/less">
+
+
+markdaon ->
 
     markdown__[collection]_[nameX]_[attribute]
 
