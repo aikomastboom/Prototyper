@@ -158,6 +158,40 @@ module.exports = function (db, shareModel, config) {
 		})
 	}
 
+
+	var updating = false;
+
+	function updateData(collection, data, callback) {
+		if (updating) {
+			//noinspection JSUnresolvedFunction
+			setImmediate(function rescheduling() {
+//				config.debug &&
+				console.log('Updating, rescheduling');
+				return updateData(collection, data, callback);
+			});
+		} else {
+			updating = true;
+			function stopUpdating(err, result, col) {
+//				config.debug &&
+				console.log('Stop updating');
+				updating = false;
+				if (err) {
+					return callback(err);
+				}
+				return callback(null, result, col);
+			}
+
+			return collection.findOne({ _id: data._id}, function foundOne(err, result) {
+				if (err) {
+					config.errors && console.log('ERR updateData', err);
+					return callback(err);
+				}
+				_.extend(result, data);
+				return saveData(collection, result, stopUpdating);
+			});
+		}
+	}
+
 	function saveData(collection, data, callback) {
 		if (data._id && !(data._id instanceof Object)) {
 			data._id = new ObjectID.createFromHexString(data._id);
@@ -174,9 +208,15 @@ module.exports = function (db, shareModel, config) {
 		});
 	}
 
+	/*
+	 options:
+	 * collection (mandatory)
+	 * query (mandatory)
+	 * update (optional) : extends existing content
+	 */
 	function setMongoContent(data, options, callback) {
 		config.debug && console.log('setMongoContent options', options);
-		return db.collection(options.collection, function collection(err, col) {
+		return db.collection(options.collection, function collection(err, collection) {
 			if (err) {
 				config.errors && console.log('ERR2 setMongoContent', err);
 				return callback(err);
@@ -184,9 +224,13 @@ module.exports = function (db, shareModel, config) {
 			if (options.operation) {
 				data.version = options.operation.v;
 			}
+			var dumpData = saveData;
+			if (options.update) {
+				dumpData = updateData;
+			}
 			if (!data._id) {
-				config.debug && console.log('setMongoContent lookup by query', options.query);
-				return col.findOne(options.query, function foundOne(err, result) {
+				config.debug && console.log('setMongoContent lookup by query', options.query, 'updating:', options.update);
+				return collection.findOne(options.query, function foundOne(err, result) {
 					if (err) {
 						config.errors && console.log('ERR3 setMongoContent', err);
 						return callback(err);
@@ -194,10 +238,10 @@ module.exports = function (db, shareModel, config) {
 					if (result) {
 						data._id = result._id;
 					}
-					return saveData(col, data, callback);
+					return dumpData(collection, data, callback);
 				})
 			} else {
-				return saveData(col, data, callback);
+				return dumpData(collection, data, callback);
 			}
 		});
 	}
@@ -253,7 +297,7 @@ module.exports = function (db, shareModel, config) {
 					}
 					var keys = _.keys(attribute_result); // reset all attributes;
 					return updateShareDocument(attributeDocumentId, attribute_result, keys, function updatedShareAttribute() {
-						return saveData(col, result, function saved(err) {
+						return updateData(col, result, function saved(err) {
 							if (err) {
 								config.errors && console.log('ERR3 setMongoAttribute', err);
 								return callback(err);

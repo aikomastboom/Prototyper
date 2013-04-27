@@ -101,7 +101,7 @@ module.exports = function (config, mongoInstance) {
 						config.errors && console.log('ERR importer.replaceMarkers import_content_marker', err);
 						return callback(err);
 					}
-					return importRemainder(context, remainder, callback);
+					return importRemainder(context, result, remainder, callback);
 				});
 			})
 		);
@@ -129,7 +129,7 @@ module.exports = function (config, mongoInstance) {
 							config.errors && console.log('ERR importer.replaceMarkers importer', err);
 							return callback(err);
 						}
-						return importRemainder(context, remainder, callback);
+						return importRemainder(context, result, remainder, callback);
 					});
 				});
 			})
@@ -138,7 +138,7 @@ module.exports = function (config, mongoInstance) {
 		return promises;
 	};
 
-	function importRemainder( context,remainder, callback) {
+	function importRemainder( context, result, remainder, callback) {
 		return mongoInstance.ensureContent(context, function parent(err, parent_result) {
 			if (err) {
 				config.errors && console.log('ERR importer.importer ensureContent', err);
@@ -164,6 +164,7 @@ module.exports = function (config, mongoInstance) {
 					delete data._id;
 				}
 				_.extend(parent_result, data);
+				context.update = true;
 				return mongoInstance.setMongoContent(parent_result, context, function (err) {
 					if (err) {
 						config.errors && console.log('ERR importer.importRemainder setMongoContent', err);
