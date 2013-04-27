@@ -29,6 +29,10 @@ var config = {
 		},
 		staticpath: '/lib/share',
 		db: {type: 'none'}
+//		db: {
+//			type: 'mongo',
+//			opsCollectionPerDoc: false
+//		}
 	},
 	api: {
 		content: '/content',
