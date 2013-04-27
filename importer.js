@@ -97,50 +97,11 @@ module.exports = function (config, mongoInstance, shareModel) {
 				var sub_doc = striped_parts[1];
 
 				handleImportMarkers(sub_doc, options, function handleLeftover(err, remainder) {
-					mongoInstance.ensureContent(context, function parent(err, parent_result) {
-						if (err) {
-							config.errors && console.log('ERR importer.replaceMarkers ensureContent', err);
-							return callback(err);
-						}
-						function handleResult(err) {
-							var replacement = {
-								regExp: result,
-								value: ""
-							};
-							return callback(err, replacement);
-						}
-
-						if (context.attribute == "json") {
-							var data = null;
-							try {
-								data = JSON.parse(remainder);
-							} catch (err) {
-								config.errors && console.log('ERR importer.replaceMarkers JSON.parse(remainder)', remainder, err);
-								return callback(err);
-							}
-							if (data._id) {
-								delete data._id;
-							}
-							_.extend(parent_result, data);
-							return mongoInstance.setMongoContent(parent_result, context, function (err) {
-								var documentId = 'json:' + context.collection + ':' + context.name;
-								var keys = _.keys(parent_result); // reset all attributes;
-								return mongoInstance.updateShareDocument(documentId, parent_result, keys, function () {
-									return handleResult(err);
-								});
-							});
-						} else {
-							context.query = { _id: parent_result._id };
-							return mongoInstance.setMongoAttribute(remainder, context, function savedAttribute(err) {
-								if (err) {
-									config.errors && console.log('ERR1 importer.importer setMongoAttribute', err);
-									return callback(err);
-								}
-								return handleResult(null);
-							});
-						}
-					})
-
+					if (err) {
+						config.errors && console.log('ERR importer.replaceMarkers import_content_marker', err);
+						return callback(err);
+					}
+					return importRemainder(context, remainder, callback);
 				});
 			})
 		);
@@ -168,49 +129,7 @@ module.exports = function (config, mongoInstance, shareModel) {
 							config.errors && console.log('ERR importer.replaceMarkers importer', err);
 							return callback(err);
 						}
-						return mongoInstance.ensureContent(context, function parent(err, parent_result) {
-							if (err) {
-								config.errors && console.log('ERR importer.importer ensureContent', err);
-								return callback(err);
-							}
-							function handleResult(err) {
-								var replacement = {
-									regExp: result,
-									value: ""
-								};
-								return callback(err, replacement);
-							}
-
-							if (context.attribute == "json") {
-								var data = null;
-								try {
-									data = JSON.parse(remainder);
-								} catch (err) {
-									config.errors && console.log('ERR importer.replaceMarkers JSON.parse(remainder)', remainder, err);
-									return callback(err);
-								}
-								if (data._id) {
-									delete data._id;
-								}
-								_.extend(parent_result, data);
-								return mongoInstance.setMongoContent(parent_result, context, function (err, result) {
-									var documentId = 'json:' + context.collection + ':' + context.name;
-									var keys = _.keys(parent_result); // reset all attributes;
-									return mongoInstance.updateShareDocument(documentId, parent_result, keys, function () {
-										return handleResult(err);
-									});
-								});
-							} else {
-								context.query = { _id: parent_result._id };
-								return mongoInstance.setMongoAttribute(remainder, context, function savedAttribute(err) {
-									if (err) {
-										config.errors && console.log('ERR2 importer.importer setMongoAttribute', err);
-										return callback(err);
-									}
-									return handleResult(null);
-								});
-							}
-						});
+						return importRemainder(context, remainder, callback);
 					});
 				});
 			})
@@ -218,6 +137,52 @@ module.exports = function (config, mongoInstance, shareModel) {
 
 		return promises;
 	};
+
+	function importRemainder( context,remainder, callback) {
+		return mongoInstance.ensureContent(context, function parent(err, parent_result) {
+			if (err) {
+				config.errors && console.log('ERR importer.importer ensureContent', err);
+				return callback(err);
+			}
+			function replaceWithEmptyContent(err) {
+				var replacement = {
+					regExp: result,
+					value: ""
+				};
+				return callback(err, replacement);
+			}
+
+			if (context.attribute == "json") {
+				var data = null;
+				try {
+					data = JSON.parse(remainder);
+				} catch (err) {
+					config.errors && console.log('ERR importer.replaceMarkers JSON.parse(remainder)', remainder, err);
+					return callback(err);
+				}
+				if (data._id) {
+					delete data._id;
+				}
+				_.extend(parent_result, data);
+				return mongoInstance.setMongoContent(parent_result, context, function (err, result) {
+					var documentId = 'json:' + context.collection + ':' + context.name;
+					var keys = _.keys(parent_result); // reset all attributes;
+					return mongoInstance.updateShareDocument(documentId, parent_result, keys, function () {
+						return replaceWithEmptyContent(err);
+					});
+				});
+			} else {
+				context.query = { _id: parent_result._id };
+				return mongoInstance.setMongoAttribute(remainder, context, function savedAttribute(err) {
+					if (err) {
+						config.errors && console.log('ERR2 importer.importer setMongoAttribute', err);
+						return callback(err);
+					}
+					return replaceWithEmptyContent(null);
+				});
+			}
+		});
+	}
 
 	return {
 		importer: importer
