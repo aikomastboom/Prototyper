@@ -402,7 +402,6 @@ function updateViewModelMain(app, viewModel, doc, vm_config) {
     ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
     viewModel._newAttribute("");
     debug && console.log('updated viewModel', viewModel);
-    app.fn.main.setDoc(viewModel._chosenAttributeId());
     mainViewModelUpdating = false;
     app.fn.main.updateSelectedMode();
 }
@@ -575,7 +574,6 @@ function loadConfig(app, location, viewModels, callback) {
         initializeConfig(doc, app, viewModels, callback);
         return doc.on('change', function handleConfigChange() {
             debug && console.log('Config changed!!');
-            app.state.running = false;
             initializeConfig(doc, app, viewModels, callback);
         });
     });
@@ -587,14 +585,15 @@ var config_location = {
 };
 var app = {
     state: {
-        running: false
+        running: false,
+        vm: {bound : {}}
     },
     doc: {},
     fn: {},
     vm: {}
 };
 
-function bindViewModels(app) {
+function initKnockout() {
     /* http://www.knockmeout.net/2012/05/quick-tip-skip-binding.html */
     ko.bindingHandlers.stopBinding = {
         init: function() {
@@ -602,27 +601,37 @@ function bindViewModels(app) {
         }
     };
     ko.virtualElements.allowedBindings.stopBinding = true;
-
+}
+function bindViewModels(app) {
     _.forEach(_.keys(app.vm), function (key) {
-        var viewModel  = app.vm[key];
-        var viewModelConfig = app.config.snapshot.viewModel[key];
-        var elementId = viewModelConfig.elementId;
-        var element = document.getElementById(elementId);
-        console.log('applyBindings',key,viewModel,viewModelConfig, elementId);
-        ko.applyBindings(viewModel, element);
-    })
-
+        if (key in app.state.vm.bound) {
+            debug && console.log('bindViewModels bindings already applied for', key);
+        } else {
+            var viewModel  = app.vm[key];
+            var viewModelConfig = app.config.snapshot.viewModel[key];
+            var elementId = viewModelConfig.elementId;
+            var element = document.getElementById(elementId);
+            console.log('bindViewModels applyBindings',key,viewModel,viewModelConfig, elementId);
+            ko.applyBindings(viewModel, element);
+            app.state.vm.bound[key] = elementId;
+        }
+    });
+    console.log('Viewmodels bound', 'ok');
 }
 function configLoaded(err) {
     if (err) {
         console.error('Error loading config', err);
     }
     console.log(app, 'Loaded', err || 'ok');
+    console.log('app.state.running', app.state.running);
+
+    if (app.state.running == false) {
+        initKnockout();
+    }
     bindViewModels(app);
-    console.log('Viewmodels bound ok');
     app.state.running = true;
 }
-
+console.log('app.state.running', app.state.running);
 loadConfig(app, config_location, app.vm, configLoaded);
 
 </script>
