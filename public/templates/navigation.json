@@ -9,9 +9,14 @@
 					"icon_class": "icon-home"
 				},
 				{
+					"title": "Index",
+					"url": "/",
+					"icon_class": "icon-home"
+				},
+				{
 					"title": "Editor",
 					"url": "/page/app/main.index.html",
-					"icon_class": "icon-home"
+					"icon_class": "icon-pencil"
 				},
 				{
 					"title": "Import index",
@@ -34,6 +39,11 @@
 						{
 							"title": "Bootstrap",
 							"links": [
+								{
+									"title": "Homepage",
+									"url": "http://twitter.github.io/bootstrap/",
+									"icon_class": "icon-home"
+								},
 								{
 									"title": "Button Generator",
 									"url": "http://www.plugolabs.com/twitter-bootstrap-button-generator/"
@@ -124,6 +134,10 @@
 							"title": "MongoDB",
 							"links": [
 								{
+									"title": "MongoDB Manual",
+									"url": "http://docs.mongodb.org/manual/contents/"
+								},
+								{
 									"title": "MongoDB Node.JS Driver",
 									"url": "http://mongodb.github.io/node-mongodb-native/contents.html"
 								}
@@ -137,8 +151,12 @@
 							"title": "Underscore",
 							"url": "http://underscorejs.org/",
 							"icon_class": "icon-home"
+						},
+						{
+							"title": "MarkdownJS",
+							"url": "https://github.com/evilstreak/markdown-js",
+							"icon_class": "icon-home"
 						}
-
 					]
 				}
 			]
