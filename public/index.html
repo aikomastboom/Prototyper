@@ -105,7 +105,7 @@
                 <!-- ko stopBinding: true --><!-- isolate user viewmodel, prevent main and navigation from interfering -->
                 <div class="nav navbar-form pull-right" id="user">
                     <label>
-                        <input type="text" class="span2"  data-bind="value: $root.name && $root.name() || 'no user'"/>
+                        <input type="text" class="span2"  data-bind="value: name"/>
                     </label>
                 </div>
                 <!-- /ko -->
@@ -195,7 +195,6 @@ var debug = false;
 
 function main_functions(app, viewModel, vm_config) {
     var editor = null;
-    var cursorPositions = {};
 
     if (!app.state.editor || (app.state.editor.editorId |= vm_config.editorId)) {
         var aceInstance = ace.edit(vm_config.editorId || "editor");
@@ -264,7 +263,7 @@ function main_functions(app, viewModel, vm_config) {
             var docName = viewModel.name() + ':' + attribute;
             if (editor.doc != null) {
                 debug && console.log('current cursor position', editor.ace.getCursorPosition());
-                cursorPositions[editor.doc.name] = editor.ace.getCursorPosition();
+                app.fn.user.storeCurrentPosition(editor.doc.name, editor.ace.getCursorPosition())
                 editor.doc.close();
                 editor.doc.detach_ace();
             }
@@ -283,7 +282,7 @@ function main_functions(app, viewModel, vm_config) {
                 editor.doc.attach_ace(editor.ace);
                 //noinspection JSUnresolvedFunction
 
-                var moveTo = cursorPositions[editor.doc.name];
+                var moveTo = app.fn.user.getCurrentPosition(editor.doc.name);
                 if (!moveTo) {
                     moveTo = {
                         row: 0,
@@ -464,7 +463,7 @@ function traverse(current, field, property, depth, pos) {
 }
 
 
-function defaultInitViewModel(app, key, doc, vm_config) {
+function initViewModel_default(app, key, doc, vm_config) {
     var mapping = vm_config.mapping;
     var snapshot = doc.snapshot;
     debug && console.log('init', key, 'viewModel', snapshot, vm_config);
@@ -474,9 +473,89 @@ function defaultInitViewModel(app, key, doc, vm_config) {
 
 }
 
+function user_functions(app, viewModel, vm_config) {
+    var cursorPositions = {};
+
+    return {
+        ensurePath: function (doc, path, callback) {
+            var ops = [];
+            var sub_doc = doc.snapshot;
+            var current = {};
+            for ( var x = 0; x < path.length; x++) {
+                var check = sub_doc[path[x]];
+                if (check) {
+                    sub_doc = check;
+                    current = check;
+                } else {
+                    ops.push({
+                        p: path.slice(0, x + 1),
+                        oi: {}
+                    });
+                    sub_doc = {};
+                    current = null;
+                }
+            }
+            return callback(null, ops, current);
+        },
+
+        storeCurrentPosition: function( name, position) {
+            cursorPositions[name] = position;
+
+            var doc = app.doc.user;
+            var path = ['positions',name];
+            this.ensurePath(doc, path, function (err, ops, current) {
+                ops.push({
+                    p: path,
+                    od: current,
+                    oi: position
+                });
+                doc.submitOp(ops, function (err) {
+                    console.log('set position',position,err);
+                });
+            });
+        },
+
+        getCurrentPosition: function (name) {
+            var position_doc = app.doc.user.at(['positions',name]);
+            var position = position_doc.get();
+            if (!position) {
+                position = cursorPositions[name];
+            }
+            return position
+        }
+    }
+}
+
+function initViewModel_user(app, key, doc, vm_config) {
+    var mapping = vm_config.mapping;
+    var snapshot = doc.snapshot;
+    debug && console.log('init', key, 'viewModel', snapshot, vm_config);
+    var viewModel = ko.mapping.fromJS(snapshot, mapping);
+    debug && console.log('init', key, 'viewModel', viewModel);
+    if (!viewModel.name) {
+        viewModel.name = ko.observable('guest');
+    }
+    viewModel.name.subscribe(function (newValue) {
+        console.log('change to new user', newValue);
+        if (newValue != 'guest') {
+            var location = {
+                collection: app.config.snapshot[key].collection,
+                name: newValue
+            };
+            loadLocation(location, 'json', function (err, key_doc) {
+                app.doc[key] = key_doc;
+                updateViewModel(app, app.vm, key, key_doc, vm_config);
+                key_doc.on('change', onDocChange(app, app.vm, key, key_doc, vm_config));
+            })
+        }
+    });
+    app.fn[key] = user_functions(app, viewModel, vm_config)
+    return viewModel;
+}
+
 function initViewModel(app, viewModels, key, doc, vm_config) {
     debug && console.log('initViewModel', viewModels, key, doc, vm_config);
-    var viewModelMethod = defaultInitViewModel;
+    var viewModelMethod = initViewModel_default;
     var methodName = 'initViewModel_' + key;
     if (this.hasOwnProperty(methodName)) {
         viewModelMethod = this[methodName];
@@ -530,9 +609,9 @@ function updateViewModel(app, viewModels, key, doc, vm_config) {
     app.state.vm.updating[key] = false;
 }
 
-function initializeViewModel(app, doc, key, viewModels, vm_config) {
-    initViewModel(app, viewModels, key, doc, vm_config);
-    doc.on('change', function onChange() {
+
+function onDocChange(app, viewModels, key, doc, vm_config) {
+    return function onChange() {
         debug && console.log(key, ' viewModel changed!! running:', app.state.running);
         if (app.state.running) {
             debug && console.log(key, ' viewModel changed!! updating', vm_config);
@@ -543,7 +622,11 @@ function initializeViewModel(app, doc, key, viewModels, vm_config) {
                 initViewModel(app, viewModels, key, doc, vm_config);
             }
         }
-    });
+    }
+}
+function initializeViewModel(app, doc, key, viewModels, vm_config) {
+    initViewModel(app, viewModels, key, doc, vm_config);
+    doc.on('change', onDocChange(app, viewModels, key, doc, vm_config));
 }
 
 function loadLocation(location, type, callback) {
@@ -573,7 +656,9 @@ function loadLocation(location, type, callback) {
 }
 
 function getCurrentUser() {
-    return 'aiko';
+    return '';
+    // maybe pull from cookie?
+    //    return 'aiko';
 }
 
 function loadConfigKey(key, location, viewModels, vm_config, callback) {
@@ -584,8 +669,24 @@ function loadConfigKey(key, location, viewModels, vm_config, callback) {
             location.name = user;
             debug && console.log('loadConfig user', location);
             loadLocation(location, 'json', callback);
+        } else {
+            callback(null, {
+                snapshot: {},
+                on: function(event, handler){
+                    console.log('blank config', key, 'event', event, 'handler', handler);
+                },
+                submitOp: function (ops, callback) {
+                    return callback(null);
+                },
+                at: function (path) {
+                    return {
+                        get: function (path) {
+                            return null;
+                        }
+                    }
+                }
+            })
         }
-        else callback(new Error('User not logged in.'), null);
     } else {
         loadLocation(location, 'json', callback);
     }
@@ -650,8 +751,10 @@ var config_location = {
 var app = {
     state: {
         running: false,
-        vm: {bound: {},
-            updating: {}}
+        vm: {
+            bound: {},
+            updating: {}
+        }
     },
     doc: {},
     fn: {},
@@ -667,6 +770,7 @@ function initKnockout() {
     };
     ko.virtualElements.allowedBindings.stopBinding = true;
 }
+
 function bindViewModels(app) {
     _.forEach(_.keys(app.vm), function (key) {
         if (key in app.state.vm.bound) {
@@ -683,6 +787,7 @@ function bindViewModels(app) {
     });
     debug && console.log('Viewmodels bound', 'ok');
 }
+
 function configLoaded(err) {
     if (err) {
         console.error('Error loading config', err);
@@ -695,6 +800,7 @@ function configLoaded(err) {
     bindViewModels(app);
     app.state.running = true;
 }
+
 loadConfig(app, config_location, app.vm, configLoaded);
 
 </script>
