@@ -156,6 +156,11 @@
 							"icon_class": "icon-book"
 						},
 						{
+							"title": "Handlebars",
+							"url": "http://handlebarsjs.com/",
+							"icon_class": "icon-home"
+						},
+						{
 							"title": "Underscore",
 							"url": "http://underscorejs.org/",
 							"icon_class": "icon-home"
