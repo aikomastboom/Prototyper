@@ -27,7 +27,8 @@
 				{
 					"title": "Readme",
 					"url": "/page/app/main.readme.md",
-					"icon_class": "icon-info-sign"
+					"icon_class": "icon-info-sign",
+					"modal": "popup"
 				}
 			]
 		},
