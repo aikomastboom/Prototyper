@@ -22,6 +22,11 @@
         {
             "mapping": {},
             "elementId": "navigation"
+        },
+        "user":
+        {
+            "mapping": {},
+            "elementId": "user"
         }
     }
 }<!-- @@_end_import__app_config_json --><!-- @@import__app_main_json_ -->{
@@ -68,11 +73,11 @@
         </div>
         <!--<select data-bind="options: _availableModes(), optionsText: 'name', value: _selectedMode"></select>-->
     </div>
-    <!-- ko stopBinding: true --><!-- isolate navigation viewmodel, prevent main from interfering -->
+    <!-- ko stopBinding: true --><!-- isolate navigation viewModel, prevent main from interfering -->
     <div id="navigation" class="navbar navbar-inverse">
         <div class="navbar-inner">
             <div class="container">
-                <div class="dropdown" data-bind="template: {name: 'links_nav', foreach: links }"></div>
+                <div class="nav dropdown" data-bind="template: {name: 'links_nav', foreach: links }"></div>
                 <script type="text/html" id="links_nav_sub">
                     <li data-bind="css: { 'dropdown-submenu': $data.hasOwnProperty('links')}">
                         <!-- ko ifnot: $data.hasOwnProperty('links') -->
@@ -97,6 +102,13 @@
                         <!-- /ko -->
                     </div>
                 </script>
+                <!-- ko stopBinding: true --><!-- isolate user viewmodel, prevent main and navigation from interfering -->
+                <div class="nav navbar-form pull-right" id="user">
+                    <label>
+                        <input type="text" class="span2"  data-bind="value: $root.name && $root.name() || 'no user'"/>
+                    </label>
+                </div>
+                <!-- /ko -->
             </div>
         </div>
     </div>
@@ -131,21 +143,20 @@
                         <!-- /ko -->
                     </ul>
                 </li>
-                <li class="divider-vertical"></li>
-                    <!-- ko foreach: _attributes() -->
-                    <li data-bind="css: { active: $data == $root._chosenAttributeId() }">
-                        <a data-bind="text: $data,
-                            click: $root._goToAttribute,
-                            css: { active: $data == $root._chosenAttributeId() }"></a>
-                    </li>
-                    <!-- /ko -->
-                <li>
-                <div class="nav navbar-form pull-right">
-                    <label>
-                        <input type="text" class="span2"
-                               data-bind="value: _newAttribute"/>
-                    </label>
-                </div>
+                <!-- ko foreach: _attributes() -->
+                <li data-bind="css: { active: $data == $root._chosenAttributeId() }">
+                    <a data-bind="text: $data,
+                        click: $root._goToAttribute,
+                        css: { active: $data == $root._chosenAttributeId() }"></a>
+                </li>
+                <!-- /ko -->
+                <li class="pull-right">
+                    <div class="nav navbar-form">
+                        <label>
+                            <input type="text" class="span2"
+                                   data-bind="value: _newAttribute"/>
+                        </label>
+                    </div>
                 </li>
             </ul>
         </div>
@@ -278,7 +289,7 @@ function main_functions(app, viewModel, vm_config) {
                         column: 0
                     }
                 }
-                debug && console.log('moveTo',moveTo);
+                debug && console.log('moveTo', moveTo);
                 editor.ace.moveCursorToPosition(moveTo);
                 editor.ace.centerSelection();
 
@@ -355,7 +366,9 @@ function open_in_new_tab(url) {
     win.focus();
 }
 
-function initViewModelMain(app, doc, vm_config) {
+function initViewModel_main(app, key, doc, vm_config) {
+    debug && console.log('initViewModel_main');
+
     var mapping = vm_config.mapping;
     var snapshot = doc.snapshot;
     addComputed(snapshot);
@@ -363,7 +376,7 @@ function initViewModelMain(app, doc, vm_config) {
     viewModel._chosenAttributeId = ko.observable();
     viewModel._newAttribute = ko.observable();
     viewModel._selectedMode = ko.observable();
-    app.fn['main'] = main_functions(app, viewModel, vm_config);
+    app.fn[key] = main_functions(app, viewModel, vm_config);
     viewModel._selectedMode(app.fn.main.noneMode());
     // Behaviours
     viewModel._goToAttribute = function (attribute) {
@@ -388,7 +401,7 @@ function initViewModelMain(app, doc, vm_config) {
         var id = viewModel._chosenAttributeId();
         if (id) {
             var ext = app.fn.main.getExtensionForAttribute(id);
-            var url = '/page/app/main.' + id + ext + '#!watch';
+            var url = '/page/app/' + key + '.' + id + ext + '#!watch';
             open_in_new_tab(url);
         }
 
@@ -400,10 +413,10 @@ function initViewModelMain(app, doc, vm_config) {
     });
 
     viewModel._selectedMode.subscribe(function (newValue) {
-        if (mainViewModelUpdating) {
+        if (app.state.vm.updating[key]) {
             console.error('// fires during ko.mapping.fromJS');
         }
-        if (newValue && !mainViewModelUpdating) {
+        if (newValue && !app.state.vm.updating[key]) {
             debug && console.log('_selectedMode, newValue', newValue.ace());
             app.fn.main.setMode(viewModel._chosenAttributeId(), newValue.ace());
         }
@@ -417,26 +430,13 @@ function initViewModelMain(app, doc, vm_config) {
     return viewModel;
 }
 
-var mainViewModelUpdating = false;
-function updateViewModelMain(app, viewModel, doc, vm_config) {
-    mainViewModelUpdating = true;
+function updateViewModel_main(app, viewModel, key, doc, vm_config) {
     var snapshot = doc.snapshot;
     addComputed(snapshot);
-    debug && console.log('updating viewModel', snapshot, viewModel, vm_config);
+    debug && console.log('updating main viewModel', snapshot, viewModel, vm_config);
     ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
-    debug && console.log('updated viewModel', viewModel);
+    debug && console.log('updated main viewModel', viewModel);
     viewModel._newAttribute("");
-    mainViewModelUpdating = false;
-}
-
-var navigationViewModelUpdating = false;
-function updateViewModelNavigation(app, viewModel, doc, vm_config) {
-    navigationViewModelUpdating = true;
-    var snapshot = doc.snapshot;
-    debug && console.log('updating viewModel', snapshot, viewModel, vm_config);
-    ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
-    debug && console.log('updated viewModel', viewModel);
-    navigationViewModelUpdating = false;
 }
 
 
@@ -463,46 +463,70 @@ function traverse(current, field, property, depth, pos) {
 }
 
 
-function initViewModel(app, viewModels, key, doc, vm_config) {
-    debug && console.log('initViewModel', viewModels, key, doc, vm_config);
-    if (key == 'main') {
-        viewModels[key] = initViewModelMain(app, doc, vm_config);
-    }
-    if (key == 'navigation') {
-        var mapping = vm_config.mapping;
-        var snapshot = doc.snapshot;
-
-        var viewModel = ko.mapping.fromJS(snapshot, mapping);
-        viewModel._getDepth = function (field) {
-            if (field.hasOwnProperty('_depth')) {
-                return field._depth;
-            }
-            return traverse(viewModel, field, 'links', 0, 0);
-        };
-
-        viewModel._getPos = function (field) {
-            if (field.hasOwnProperty('_pos')) {
-                return field._pos;
-            }
-            return traverse(viewModel, field, 'links', 0, 0);
-        };
-
-        viewModel._openLink = function (link) {
-            open_in_new_tab(link.url());
-        };
-
-        viewModels[key] = viewModel;
-    }
+function defaultInitViewModel(app, key, doc, vm_config) {
+    var mapping = vm_config.mapping;
+    var snapshot = doc.snapshot;
+    debug && console.log('init', key, 'viewModel', snapshot, vm_config);
+    var viewModel = ko.mapping.fromJS(snapshot, mapping);
+    debug && console.log('init', key, 'viewModel', viewModel);
+    return viewModel;
 
 }
 
+function initViewModel(app, viewModels, key, doc, vm_config) {
+    debug && console.log('initViewModel', viewModels, key, doc, vm_config);
+    var viewModelMethod = defaultInitViewModel;
+    var methodName = 'initViewModel_' + key;
+    if (this.hasOwnProperty(methodName)) {
+        viewModelMethod = this[methodName];
+    }
+    app.state.vm.updating[key] = true;
+    viewModels[key] = viewModelMethod(app, key, doc, vm_config);
+    app.state.vm.updating[key] = false;
+}
+
+function initViewModel_navigation(app, key, doc, vm_config) {
+    debug && console.log('initViewModel_navigation');
+    var mapping = vm_config.mapping;
+    var snapshot = doc.snapshot;
+    var viewModel = ko.mapping.fromJS(snapshot, mapping);
+
+    viewModel._getDepth = function (field) {
+        if (field.hasOwnProperty('_depth')) {
+            return field._depth;
+        }
+        return traverse(viewModel, field, 'links', 0, 0);
+    };
+
+    viewModel._getPos = function (field) {
+        if (field.hasOwnProperty('_pos')) {
+            return field._pos;
+        }
+        return traverse(viewModel, field, 'links', 0, 0);
+    };
+
+    viewModel._openLink = function (link) {
+        open_in_new_tab(link.url());
+    };
+    return viewModel;
+}
+
+function defaultUpdateViewModel(app, viewModel, key, doc, vm_config) {
+    var snapshot = doc.snapshot;
+    debug && console.log('updating', key, 'viewModel', snapshot, viewModel, vm_config);
+    ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
+    debug && console.log('updated', key, 'viewModel', viewModel);
+}
+
 function updateViewModel(app, viewModels, key, doc, vm_config) {
-    if (key == 'main') {
-        updateViewModelMain(app, viewModels[key], doc, vm_config);
+    var viewModelMethod = defaultUpdateViewModel;
+    var methodName = 'updateViewModel_' + key;
+    if (this.hasOwnProperty(methodName)) {
+        viewModelMethod = this[methodName];
     }
-    if (key == 'navigation') {
-        updateViewModelNavigation(app, viewModels[key], doc, vm_config);
-    }
+    app.state.vm.updating[key] = true;
+    viewModelMethod(app, viewModels[key], key, doc, vm_config);
+    app.state.vm.updating[key] = false;
 }
 
 function initializeViewModel(app, doc, key, viewModels, vm_config) {
@@ -532,7 +556,7 @@ function loadLocation(location, callback) {
             console.error('event error loadLocation', location, err, doc.state, doc);
         });
         doc.on('closed', function (err, data) {
-            debug && console.log('doc', doc, 'closing', err,'data', data);
+            debug && console.log('doc', doc, 'closing', err, 'data', data);
         });
         debug && console.log('opened location', location.collection, location.name, doc, doc.snapshot, doc.state);
         if (doc.snapshot == null) {
@@ -568,7 +592,7 @@ function loadConfigKey(key, location, viewModels, vm_config, callback) {
 
 function handleConfigKey(app, key, snapshot, viewModels, callback) {
     debug && console.log('handleConfigKey app', app);
-    if (key != 'name' && key != '_id' && key != 'viewModel' && !app.hasOwnProperty(key)) {
+    if (!app.hasOwnProperty(key)) {
         var location = snapshot[key];
         var vm_config = snapshot.viewModel && snapshot.viewModel[key];
         return loadConfigKey(key, location, viewModels, vm_config, function handleLoadedKey(err, key_doc) {
@@ -595,7 +619,11 @@ function initializeConfig(doc, app, viewModels, callback) {
     var snapshot = doc.snapshot;
     return async.each(_.keys(snapshot), function handleConfigKeys(key, iterator_callback) {
         debug && console.log('+ handleConfigKey', key);
-        return handleConfigKey(app, key, snapshot, viewModels, iterator_callback);
+        if( snapshot[key].hasOwnProperty('collection')) {
+            return handleConfigKey(app, key, snapshot, viewModels, iterator_callback);
+        } else {
+            return iterator_callback();
+        }
     }, callback);
 }
 
@@ -621,7 +649,8 @@ var config_location = {
 var app = {
     state: {
         running: false,
-        vm: {bound: {}}
+        vm: {bound: {},
+            updating: {}}
     },
     doc: {},
     fn: {},
