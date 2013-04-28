@@ -424,9 +424,19 @@ function updateViewModelMain(app, viewModel, doc, vm_config) {
     addComputed(snapshot);
     debug && console.log('updating viewModel', snapshot, viewModel, vm_config);
     ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
-    viewModel._newAttribute("");
     debug && console.log('updated viewModel', viewModel);
+    viewModel._newAttribute("");
     mainViewModelUpdating = false;
+}
+
+var navigationViewModelUpdating = false;
+function updateViewModelNavigation(app, viewModel, doc, vm_config) {
+    navigationViewModelUpdating = true;
+    var snapshot = doc.snapshot;
+    debug && console.log('updating viewModel', snapshot, viewModel, vm_config);
+    ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
+    debug && console.log('updated viewModel', viewModel);
+    navigationViewModelUpdating = false;
 }
 
 
@@ -491,7 +501,7 @@ function updateViewModel(app, viewModels, key, doc, vm_config) {
         updateViewModelMain(app, viewModels[key], doc, vm_config);
     }
     if (key == 'navigation') {
-        // updateViewModelMain(app, viewModels[key], doc, mapping);
+        updateViewModelNavigation(app, viewModels[key], doc, vm_config);
     }
 }
 

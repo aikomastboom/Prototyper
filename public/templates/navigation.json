@@ -1,5 +1,5 @@
 {
-	"default_icon": "icon-eye-open",
+	"default_icon": "icon-home",
 	"links": [
 		{
 			"title": "Prototyper",
@@ -70,7 +70,8 @@
 								},
 								{
 									"title": "Documentation",
-									"url": "http://knockoutjs.com/documentation/introduction.html"
+									"url": "http://knockoutjs.com/documentation/introduction.html",
+									"icon_class": "icon-book"
 								},
 								{
 									"title": "Mapping Plugin",
@@ -92,7 +93,8 @@
 						},
 						{
 							"title": "Underscore",
-							"url": "http://underscorejs.org/"
+							"url": "http://underscorejs.org/",
+							"icon_class": "icon-home"
 						},
 						{
 							"title": "ACE",
@@ -113,7 +115,8 @@
 								},
 								{
 									"title": "API",
-									"url": "http://nodejs.org/api/"
+									"url": "http://nodejs.org/api/",
+									"icon_class": "icon-book"
 								}
 							]
 						},
@@ -127,7 +130,8 @@
 								},
 								{
 									"title": "API",
-									"url": "http://expressjs.com/api.html"
+									"url": "http://expressjs.com/api.html",
+									"icon_class": "icon-book"
 								}
 							]
 						},
@@ -136,17 +140,20 @@
 							"links": [
 								{
 									"title": "MongoDB Manual",
-									"url": "http://docs.mongodb.org/manual/contents/"
+									"url": "http://docs.mongodb.org/manual/contents/",
+									"icon_class": "icon-book"
 								},
 								{
 									"title": "MongoDB Node.JS Driver",
-									"url": "http://mongodb.github.io/node-mongodb-native/contents.html"
+									"url": "http://mongodb.github.io/node-mongodb-native/contents.html",
+									"icon_class": "icon-book"
 								}
 							]
 						},
 						{
 							"title": "ShareJS",
-							"url": "https://github.com/josephg/ShareJS/wiki"
+							"url": "https://github.com/josephg/ShareJS/wiki",
+							"icon_class": "icon-book"
 						},
 						{
 							"title": "Underscore",
