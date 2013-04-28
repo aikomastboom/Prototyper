@@ -103,19 +103,26 @@ module.exports = function (config, mongoDataInstance) {
 						}
 						var compiled_template = null;
 						var keys_to_collect = {};
+
+						function collectKey(key) {
+							return function () {
+								if (keys_to_collect.hasOwnProperty(key)) {
+									return keys_to_collect[key];
+								} else {
+									keys_to_collect[key] = null;
+									return "wating for content";
+								}
+							}
+						}
+
 						// Handlebars is synchronous ouch !!
 						var handlebars = Handlebars.create();
 						_.forEach(_.keys(context_result), function (key) {
 							handlebars.registerHelper(key, function () {
 								if (context_result[key].guid) {
-									if (keys_to_collect.hasOwnProperty(key)) {
-										return keys_to_collect[key];
-									} else {
-										keys_to_collect[key] = null;
-										return "";
-									}
+									return collectKey(key)();
 								}
-								return "";
+								return context_result[key];
 							});
 						});
 						try {
@@ -124,8 +131,20 @@ module.exports = function (config, mongoDataInstance) {
 							config.errors && console.log('ERR template_tag Handlebars.compile', template, err);
 							return callback(err);
 						}
+						var extendhandlebars_context = function (result) {
+							var handlebars = {};
+							_.forEach(_.keys(result), function (key) {
+								if (result[key].guid) {
+									handlebars[key] = collectKey(key);
+								} else {
+									handlebars[key] = result[key];
+								}
+							});
+							return handlebars;
+						};
+						var handlebars_context = extendhandlebars_context(context_result);
 						try {
-							compiled_template(context_result);
+							compiled_template(handlebars_context);
 						} catch (err) {
 							config.errors && console.log('ERR template_tag Handlebars.render', template, context, err);
 							return callback(err);
@@ -155,7 +174,7 @@ module.exports = function (config, mongoDataInstance) {
 							function onSuccess() {
 								var rendered = null;
 								try {
-									rendered = compiled_template(context_result);
+									rendered = compiled_template(handlebars_context);
 								} catch (err) {
 									config.errors && console.log('ERR template_tag Handlebars.render', template, context, err);
 									return callback(err);
