@@ -261,16 +261,17 @@ function main_functions(app, viewModel, vm_config) {
             this.setMode(attribute, mode);
             //document.title = attribute;
 
-            var docName = 'text:app:' + viewModel.name() + ':' + attribute;
-
-            sharejs.open(docName, 'text', function (error, newDoc) {
-
-                if (editor.doc != null) {
-                    debug && console.log('current cursor position', editor.ace.getCursorPosition());
-                    cursorPositions[editor.doc.name] = editor.ace.getCursorPosition();
-                    editor.doc.close();
-                    editor.doc.detach_ace();
-                }
+            var docName = viewModel.name() + ':' + attribute;
+            if (editor.doc != null) {
+                debug && console.log('current cursor position', editor.ace.getCursorPosition());
+                cursorPositions[editor.doc.name] = editor.ace.getCursorPosition();
+                editor.doc.close();
+                editor.doc.detach_ace();
+            }
+            loadLocation({'collection': 'app', name: docName}, 'text', function(error, newDoc){
+                newDoc.on('error', function(err){
+                    editor.ace.setReadOnly(true);
+                });
 
                 editor.doc = newDoc;
 
@@ -545,9 +546,9 @@ function initializeViewModel(app, doc, key, viewModels, vm_config) {
     });
 }
 
-function loadLocation(location, callback) {
+function loadLocation(location, type, callback) {
     debug && console.log('opening location', location.collection, location.name);
-    return sharejs.open('json:' + location.collection + ':' + location.name, 'json', function (err, doc) {
+    return sharejs.open(type+':' + location.collection + ':' + location.name, type, function (err, doc) {
         if (err) {
             console.error('error loadLocation', location, err, doc);
             return callback(err);
@@ -558,7 +559,7 @@ function loadLocation(location, callback) {
         doc.on('closed', function (err, data) {
             debug && console.log('doc', doc, 'closing', err, 'data', data);
         });
-        debug && console.log('opened location', location.collection, location.name, doc, doc.snapshot, doc.state);
+        debug && console.log('opened location', location.collection, location.name, doc, doc.state, doc.version);
         if (doc.snapshot == null) {
             debug && console.log('wait for first change', location, doc.version);
             return doc.once('change', function onceChange() {
@@ -582,11 +583,11 @@ function loadConfigKey(key, location, viewModels, vm_config, callback) {
         if (user) {
             location.name = user;
             debug && console.log('loadConfig user', location);
-            loadLocation(location, callback);
+            loadLocation(location, 'json', callback);
         }
         else callback(new Error('User not logged in.'), null);
     } else {
-        loadLocation(location, callback);
+        loadLocation(location, 'json', callback);
     }
 }
 
@@ -628,7 +629,7 @@ function initializeConfig(doc, app, viewModels, callback) {
 }
 
 function loadConfig(app, location, viewModels, callback) {
-    loadLocation(location, function handleConfig(err, doc) {
+    loadLocation(location, 'json', function handleConfig(err, doc) {
         if (err) {
             console.error('error loadConfig', location, err);
             return callback(err);
