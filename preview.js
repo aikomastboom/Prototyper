@@ -110,7 +110,7 @@ module.exports = function (config, mongoDataInstance) {
 									return keys_to_collect[key];
 								} else {
 									keys_to_collect[key] = null;
-									return "wating for content";
+									return "waiting for content";
 								}
 							}
 						}
