@@ -22,7 +22,7 @@ module.exports = function (options, res, next) {
 			if (/Data not found*/.test(err.message)) {
 				res.status(404);
 			}
-			return next(JSON.stringify(	err));
+			return next(err);
 		}
 		var contentType = getMimeType(options.ext);
 		res.setHeader('Content-Type', contentType);
