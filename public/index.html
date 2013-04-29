@@ -87,7 +87,7 @@
                         <!-- ko ifnot: $data.hasOwnProperty('links') -->
                         <!-- ko ifnot: $data.hasOwnProperty('modal') -->
                         <a href="#" data-bind="attr: { href: $data.url(), title: $data.title() }, click: $root._openLink">
-                        <span data-bind="attr: { class: $data.icon_class && $data.icon_class() || $root.default_icon() }"></span>
+                            <span data-bind="attr: { class: $data.icon_class && $data.icon_class() || $root.default_icon() }"></span>
                             <span data-bind="text: $data.title()"></span>
                         </a>
                         <!-- /ko --><!-- ko if: $data.hasOwnProperty('modal') -->
@@ -95,9 +95,7 @@
                             <span data-bind="attr: { class: $data.icon_class && $data.icon_class() || $root.default_icon() }"></span>
                             <span data-bind="text: $data.title()"></span>
                         </a>
-                        <!-- /ko -->
-                        <!--<a data-toggle="modal" href="remote.html" data-target="#modal">click me</a>-->
-                        <!-- /ko --><!-- ko if: $data.hasOwnProperty('links') -->
+                        <!-- /ko --><!-- /ko --><!-- ko if: $data.hasOwnProperty('links') -->
                         <a href="#" data-bind="text: $data.title()"></a>
                         <ul class="dropdown-menu" data-bind="template: {name: 'links_nav_sub', foreach: links }"></ul>
                         <!-- /ko -->
