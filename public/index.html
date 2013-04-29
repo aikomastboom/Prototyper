@@ -48,6 +48,7 @@
     <!-- @@template__app_templates_head__context__app_main -->
     <!-- @@remove_ -->
     <title>app/main/index</title>
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
     <!--<script src="/lib/modernizr/modernizr.min.js" type="text/javascript" charset="utf-8"></script>-->
     <link href="/lib/bootstrap/bootstrap-combined.min.css" rel="stylesheet" type="text/css">
     <!--<link href="/lib/font-awesome/font-awesome.css" rel="stylesheet" type="text/css">-->
@@ -80,6 +81,8 @@
     <!-- ko stopBinding: true --><!-- isolate navigation viewModel, prevent main from interfering -->
     <div id="navigation" class="navbar navbar-inverse">
         <div class="navbar-inner">
+            <img class="brand" src="./img/uillogo-inverse.png"/>
+
             <div class="container">
                 <div class="nav dropdown" data-bind="template: {name: 'links_nav', foreach: links }"></div>
                 <script type="text/html" id="links_nav_sub">

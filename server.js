@@ -41,6 +41,7 @@ var config = {
 		importer: '/importer'
 	},
 	statics: {
+		dev_favicon_path: __dirname + '/public/favicon_dev.ico',
 		importer_path: __dirname + '/public',
 		public_path: __dirname + '/public',
 		markdown_client: __dirname + '/node_modules/markdown/lib',
@@ -51,6 +52,11 @@ var config = {
 
 var app = express();
 config.debug && app.use(connect.logger());
+if (!process.env.NODE_ENV) {
+	app.get('/favicon.ico', function (req, res, next) {
+		res.sendfile(config.statics.dev_favicon_path);
+	});
+}
 //noinspection JSUnresolvedFunction
 app.use(express.static(config.statics.public_path));
 //noinspection JSUnresolvedFunction
