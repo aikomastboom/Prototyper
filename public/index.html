@@ -81,7 +81,7 @@
     <!-- ko stopBinding: true --><!-- isolate navigation viewModel, prevent main from interfering -->
     <div id="navigation" class="navbar navbar-inverse">
         <div class="navbar-inner">
-            <img class="brand" src="./img/uillogo-inverse.png"/>
+            <img class="brand" src="/img/uillogo-inverse.png"/>
 
             <div class="container">
                 <div class="nav dropdown" data-bind="template: {name: 'links_nav', foreach: links }"></div>
@@ -118,6 +118,7 @@
                 <!-- ko stopBinding: true --><!-- isolate user viewmodel, prevent main and navigation from interfering -->
                 <div class="nav navbar-form pull-right" id="user">
                     <label>
+                        <i class="icon-white icon-user"></i>
                         <input type="text" class="span2"  data-bind="value: name"/>
                     </label>
                 </div>
@@ -166,6 +167,7 @@
                 <li class="pull-right">
                     <div class="nav navbar-form">
                         <label>
+                            <i class="icon-plus"></i>
                             <input type="text" class="span2"
                                    data-bind="value: _newAttribute"/>
                         </label>
@@ -448,10 +450,14 @@ function updateViewModel_main(app, viewModel, key, doc, vm_config) {
     addComputed(snapshot);
     debug && console.log('updating main viewModel', snapshot, viewModel, vm_config);
     ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
-    debug && console.log('updated main viewModel', viewModel);
     viewModel._newAttribute("");
+    debug && console.log('updated main viewModel', viewModel);
 }
 
+function post_updateViewModel_main(app, viewModel, key, doc, vm_config) {
+    debug && console.log('post_update main viewModel', viewModel);
+    app.fn.main.updateSelectedMode();
+}
 
 /* crazy expensive caching tree traverse */
 function traverse(current, field, property, depth, pos) {
@@ -622,6 +628,20 @@ function updateViewModel(app, viewModels, key, doc, vm_config) {
     app.state.vm.updating[key] = false;
 }
 
+function defaultPostUpdateViewModel(app, viewModel, key, doc, vm_config) {
+    debug && console.log('post_updating', key, 'viewModel', viewModel, vm_config);
+}
+
+
+function post_updateViewModel(app, viewModels, key, doc, vm_config) {
+    var viewModelMethod = defaultPostUpdateViewModel;
+    var methodName = 'post_updateViewModel_' + key;
+    if (this.hasOwnProperty(methodName)) {
+        viewModelMethod = this[methodName];
+    }
+    viewModelMethod(app, viewModels[key], key, doc, vm_config);
+}
+
 
 function onDocChange(app, viewModels, key, doc, vm_config) {
     return function onChange() {
@@ -630,6 +650,7 @@ function onDocChange(app, viewModels, key, doc, vm_config) {
             debug && console.log(key, ' viewModel changed!! updating', vm_config);
             if (viewModels[key]) {
                 updateViewModel(app, viewModels, key, doc, vm_config);
+                post_updateViewModel(app, viewModels, key, doc, vm_config);
             } else {
                 console.error('HUH!!');
                 initViewModel(app, viewModels, key, doc, vm_config);
