@@ -59,7 +59,7 @@ if [ ! -f ./glyphicons-halflings.png ]; then
   curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings.png
 fi
 if [ ! -f ./glyphicons-halflings-white.png ]; then
-  curl -O http://prototyper.aiko.local:8000/lib/img/glyphicons-halflings-white.png
+  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings-white.png
 fi
 cd ${current_dir}
 
