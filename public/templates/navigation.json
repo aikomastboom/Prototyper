@@ -20,9 +20,24 @@
 					"icon_class": "icon-pencil"
 				},
 				{
-					"title": "Import index",
-					"url": "/importer/index.html",
-					"icon_class": "icon-refresh"
+					"title": "Import",
+					"links": [
+						{
+							"title": "Prototyper",
+							"url": "/importer/index.html",
+							"icon_class": "icon-refresh"
+						},
+						{
+							"title": "Import Test One",
+							"url": "/importer/test1.html",
+							"icon_class": "icon-refresh"
+						},
+						{
+							"title": "Preview Test One",
+							"url": "/page/app/test1.index.html",
+							"icon_class": "icon-home"
+						}
+					]
 				},
 				{
 					"title": "Readme",
