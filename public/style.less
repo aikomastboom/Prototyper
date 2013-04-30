@@ -1,38 +1,39 @@
 body {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .container {
-    width: 100%
+  width: 100%
 }
+
 .ace_bold {
-    font-weight: bold;
+  font-weight: bold;
 }
 
 .ace_italic {
-    font-style: italic;
+  font-style: italic;
 }
 
 @header-height: 62px;
 
 #header {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: @header-height;
-    width: 100%;
-    background-color: black;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: @header-height;
+  width: 100%;
+  background-color: black;
 }
 
 #htext {
-    padding-left: 20px;
-    color: white;
-    height: 20px;
-    font-family: baskerville, palatino, 'palatino linotype', georgia, serif;
+  padding-left: 20px;
+  color: white;
+  height: 20px;
+  font-family: baskerville, palatino, 'palatino linotype', georgia, serif;
 }
 
 #htext div {
-    display: inline;
+  display: inline;
 }
 
 .navbar img.brand {
@@ -45,42 +46,52 @@ body {
 @content-divider: 150px;
 
 #content {
-    position: fixed;
-    top: @header-height;
-    width: 100%;
-    bottom: 0;
+  position: fixed;
+  top: @header-height;
+  width: 100%;
+  bottom: 0;
 }
 
 #main {
-    left: @content-divider;
-    right: 0;
+  left: @content-divider;
+  right: 0;
 }
 
 @tabs-height: 38px;
 #tabs {
-    margin: 0;
-    position: absolute;
-    top: 0;
-    height: @tabs-height;
-    left: @content-divider;
-    right: 0;
-    /*background-color: lightpink;*/
+  margin: 0;
+  position: absolute;
+  top: 0;
+  height: @tabs-height;
+  left: @content-divider;
+  right: 0;
 }
+
 #editor {
-    margin: 0;
-    position: absolute;
-    top: @tabs-height;
-    bottom: 0;
-    left: @content-divider;
-    right: 0;
+  margin: 0;
+  position: absolute;
+  top: @tabs-height;
+  bottom: 0;
+  left: @content-divider;
+  right: 0;
 }
 
 #tree {
-    left:0;
-    right:@content-divider;
-    /*bottom: 0px;*/
+  left: 0;
+  right: @content-divider;
 }
+
 #htext a {
-    color: #aaf;
-    font-weight: bold;
+  color: #aaf;
+  font-weight: bold;
 }
+
+.nav i[class*="icon-"] {
+  vertical-align: middle;
+}
+
+/* Automaticaly make icon-* to render white icons
+.navbar-inverse i[class*="icon-"] {
+  background-image: url("/lib/img/glyphicons-halflings-white.png");
+}
+/* end -- icon inverse mod */
