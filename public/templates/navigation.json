@@ -36,6 +36,10 @@
 			"title": "Reference",
 			"links": [
 				{
+					"title": "Ace Editor ShortCut Keys",
+					"url": "https://github.com/ajaxorg/ace/wiki/Default-Keyboard-Shortcuts"
+				},
+				{
 					"title": "Frontend",
 					"links": [
 						{
@@ -170,6 +174,41 @@
 							"title": "MarkdownJS",
 							"url": "https://github.com/evilstreak/markdown-js",
 							"icon_class": "icon-home"
+						}
+					]
+				}
+			]
+		},
+		{
+			"title": "Ops",
+			"links": [
+				{
+					"title": "Tasks",
+					"links": [
+						{
+							"title": "New Task",
+							"url": "http://operations.local:4000/newticket",
+							"icon_class": "icon-fire"
+						},
+						{
+							"title": "Overview",
+							"url": "http://operations.local:4000/report",
+							"icon_class": "icon-align-justify"
+						}
+					]
+				},
+				{
+					"title": "Rhodecode",
+					"links": [
+						{
+							"title": "Prototyper",
+							"url": "http://operations.local:5000/Development/Prototyper",
+							"icon_class": "icon-folder-open"
+						},
+						{
+							"title": "Playbooks",
+							"url": "http://operations.local:5000/Operations/playbooks",
+							"icon_class": "icon-folder-open"
 						}
 					]
 				}
