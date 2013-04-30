@@ -57,6 +57,16 @@
 							]
 						},
 						{
+							"title": "Font Awsome",
+							"links": [
+								{
+									"title": "Homepage",
+									"url": "http://fortawesome.github.io/Font-Awesome/",
+									"icon_class": "icon-home"
+								}
+							]
+						},
+						{
 							"title": "Markdown",
 							"links": [
 								{
