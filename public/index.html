@@ -1,4 +1,41 @@
-<!DOCTYPE html><!-- @@import__app_config_json_ -->{
+<!DOCTYPE html><!-- @@import__app_projects_json_ -->{
+    "projects" : [
+        {
+            "title" : "Prototyper",
+            "docs" : [
+                {
+                    "collection" : "app",
+                    "name" : "main"
+                },
+                {
+                    "collection" : "app",
+                    "name" : "config"
+                },
+                {
+                    "collection" : "app",
+                    "name" : "templates"
+                },
+                {
+                    "collection" : "app",
+                    "name" : "navigation"
+                },
+                {
+                    "collection" : "app",
+                    "name" : "projects"
+                }
+            ]
+        },
+        {
+            "title" : "Test One",
+            "docs" : [
+                {
+                    "collection" : "tests",
+                    "name" : "test1"
+                }
+            ]
+        }
+    ]
+}<!-- @@_end_import__app_projects_json --><!-- @@import__app_config_json_ -->{
     "navigation": {
         "collection": "app",
         "name": "navigation"
@@ -10,23 +47,28 @@
         "collection": "app",
         "name": "main"
     },
+    "projects": {
+        "collection": "app",
+        "name": "projects"
+    },
     "viewModel": {
-        "main":
-        {
+        "main": {
             "editorId": "editor",
             "mapping" : {
                 "ignore": ["version"]
             }
         },
-        "navigation":
-        {
+        "navigation": {
             "mapping": {},
             "elementId": "navigation"
         },
-        "user":
-        {
+        "user": {
             "mapping": {},
             "elementId": "user"
+        },
+        "projects": {
+            "mapping": {},
+            "elementId": "project_tree"
         }
     }
 }<!-- @@_end_import__app_config_json --><!-- @@import__app_main_json_ -->{
@@ -129,7 +171,9 @@
     <!-- /ko -->
 </div>
 <div id="content">
-    <div id="tree" class="">
+    <!-- ko stopBinding: true --><!-- isolate project viewModel, prevent main from interfering -->
+    <div id="project_tree">
+
         <ul>
             <li>
                 <span data-bind="text: name"></span>
@@ -137,7 +181,8 @@
             </li>
         </ul>
     </div>
-    <div id="main" class="">
+    <!-- /ko -->
+    <div id="main">
         <div id="tabs">
             <ul class="nav nav-pills">
                 <li>
