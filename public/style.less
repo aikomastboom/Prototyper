@@ -23,6 +23,7 @@ body {
   height: @header-height;
   width: 100%;
   background-color: black;
+  z-index: 1; /* fixes chrome dropdown-menu. TODO: Why do I need to mess with z-index only to make Chrome work?*/
 }
 
 #htext {
@@ -58,6 +59,7 @@ body {
 }
 
 @tabs-height: 38px;
+
 #tabs {
   margin: 0;
   position: absolute;
@@ -94,4 +96,4 @@ body {
 .navbar-inverse i[class*="icon-"] {
   background-image: url("/lib/img/glyphicons-halflings-white.png");
 }
-/* end -- icon inverse mod */
+ end -- icon inverse mod */
