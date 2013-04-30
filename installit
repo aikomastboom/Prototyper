@@ -50,6 +50,9 @@ cd ./public/lib/bootstrap
 if [ ! -f ./bootstrap-combined.min.css ]; then
   curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css
 fi
+if [ ! -f ./bootstrap-min.js ]; then
+  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js
+fi
 cd ${current_dir}
 
 # http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings.png
