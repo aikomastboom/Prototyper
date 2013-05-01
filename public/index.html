@@ -159,10 +159,10 @@
                 </script>
                 <!-- ko stopBinding: true --><!-- isolate user viewmodel, prevent main and navigation from interfering -->
                 <div class="nav navbar-form pull-right" id="user">
-                    <label>
-                        <i class="icon-white icon-user"></i>
+                    <div class="input-prepend">
+                        <span class="add-on btn-inverse"><i class="icon-white icon-user"></i></span>
                         <input type="text" class="span2"  data-bind="value: name"/>
-                    </label>
+                    </div>
                 </div>
                 <!-- /ko -->
             </div>
@@ -173,7 +173,34 @@
 <div id="content">
     <!-- ko stopBinding: true --><!-- isolate project viewModel, prevent main from interfering -->
     <div id="project_tree">
+        <div class="controls">
+            <select data-bind="options: projects(), optionsText: 'title', value: _selectedProject"></select>
+        </div>
+        <div class="controls">
+            <input type="text" autocomplete="off">
+        </div>
+        <div class="accordion" id="accordion"
+             data-bind="foreach: _selectedProject().docs()">
+            <div class="accordion-group">
+                <a class="nav-pills nav-stacked" data-toggle="collapse"
+                   data-parent="#accordion"
+                   data-bind="attr: { href: '#collapse' + $index() }">
+                    <span data-bind="text: name, click: $root._loadAttributes($index(), $data)"></span>
+                </a>
 
+                <div data-bind="attr: { id: 'collapse' +$index() }"
+                     class="accordion-body collapse">
+                    <ul class="nav nav-pills nav-stacked">
+                        <!-- ko foreach: _attributes() -->
+                        <li data-bind="css: { active: $data in $root._activeAttributes() }">
+                            <a data-bind="text: $data,
+                                    click: $root._openAttribute"></a>
+                        </li>
+                        <!-- /ko -->
+                    </ul>
+                </div>
+            </div>
+        </div>
         <ul>
             <li>
                 <span data-bind="text: name"></span>
@@ -204,9 +231,7 @@
                 </li>
                 <!-- ko foreach: _attributes() -->
                 <li data-bind="css: { active: $data == $root._chosenAttributeId() }">
-                    <a data-bind="text: $data,
-                        click: $root._goToAttribute,
-                        css: { active: $data == $root._chosenAttributeId() }"></a>
+                    <a data-bind="text: $data, click: $root._goToAttribute"></a>
                 </li>
                 <!-- /ko -->
                 <li class="pull-right">
@@ -617,6 +642,68 @@ function initViewModel_user(app, key, doc, vm_config) {
     return viewModel;
 }
 
+function locationFromKey(key) {
+    var parts = key.split(':');
+    return {
+        collection: parts[0],
+        name: parts[1]
+    };
+}
+
+function keyFromLocation(loc) {
+    var collection = loc.collection;
+    if (typeof loc.collection == 'function') {
+        collection = loc.collection();
+    }
+    var name = loc.name;
+    if (typeof loc.collection == 'function') {
+        name = loc.name();
+    }
+    return collection + ':' + name;
+}
+
+function initViewModel_projects(app, key, doc, vm_config) {
+    var mapping = vm_config.mapping;
+    var snapshot = doc.snapshot;
+    debug && console.log('init', key, 'viewModel', snapshot, vm_config);
+    var viewModel = ko.mapping.fromJS(snapshot, mapping);
+    debug && console.log('init', key, 'viewModel', viewModel);
+    // TODO: grab current project from user.
+    viewModel._selectedProject = ko.observable();
+    viewModel._selectedProject.subscribe(function (project) {
+        _.forEach(project.docs(), function (loc, index) {
+            var key = keyFromLocation(loc);
+            if (app.doc[key]) {
+                var attributes = app.doc[key].snapshot._attributes;
+                project.docs()[index]._attributes = ko.observableArray(attributes);
+            } else {
+                project.docs()[index]._attributes = ko.observableArray();
+            }
+        })
+    });
+
+    viewModel._loadAttributes = function (index, loc) {
+        var doc_key = keyFromLocation(loc);
+        if (!app.doc[doc_key]) {
+            console.log('loc', loc);
+            loadLocation(loc, 'json', function (err, key_doc) {
+                app.doc[doc_key] = key_doc;
+                function onChange() {
+                    addComputed(key_doc.snapshot);
+                    viewModel._selectedProject().docs()[index]._attributes(key_doc.snapshot._attributes);
+                }
+
+                onChange();
+            });
+        }
+    };
+
+    viewModel._loadedAttributes = ko.observableArray();
+    viewModel._activeAttributes = ko.observableArray();
+
+    return viewModel;
+}
+
 function initViewModel(app, viewModels, key, doc, vm_config) {
     debug && console.log('initViewModel', viewModels, key, doc, vm_config);
     var viewModelMethod = initViewModel_default;
@@ -677,7 +764,6 @@ function defaultPostUpdateViewModel(app, viewModel, key, doc, vm_config) {
     debug && console.log('post_updating', key, 'viewModel', viewModel, vm_config);
 }
 
-
 function post_updateViewModel(app, viewModels, key, doc, vm_config) {
     var viewModelMethod = defaultPostUpdateViewModel;
     var methodName = 'post_updateViewModel_' + key;
@@ -686,7 +772,6 @@ function post_updateViewModel(app, viewModels, key, doc, vm_config) {
     }
     viewModelMethod(app, viewModels[key], key, doc, vm_config);
 }
-
 
 function onDocChange(app, viewModels, key, doc, vm_config) {
     return function onChange() {
@@ -703,29 +788,31 @@ function onDocChange(app, viewModels, key, doc, vm_config) {
         }
     }
 }
+
 function initializeViewModel(app, doc, key, viewModels, vm_config) {
     initViewModel(app, viewModels, key, doc, vm_config);
     doc.on('change', onDocChange(app, viewModels, key, doc, vm_config));
 }
 
-function loadLocation(location, type, callback) {
-    debug && console.log('opening location', location.collection, location.name);
-    return sharejs.open(type+':' + location.collection + ':' + location.name, type, function (err, doc) {
+function loadLocation(loc, type, callback) {
+    var doc_key = keyFromLocation(loc);
+    debug && console.log('opening location', doc_key);
+    return sharejs.open(type+':' + doc_key, type, function (err, doc) {
         if (err) {
-            console.error('error loadLocation', location, err, doc);
+            console.error('error loadLocation', doc_key, err, doc);
             return callback(err);
         }
         doc.on('error', function (err) {
-            console.error('event error loadLocation', location, err, doc.state, doc);
+            console.error('event error loadLocation', doc_key, err, doc.state, doc);
         });
         doc.on('closed', function (err, data) {
             debug && console.log('doc', doc, 'closing', err, 'data', data);
         });
-        debug && console.log('opened location', location.collection, location.name, doc, doc.state, doc.version);
+        debug && console.log('opened location', doc_key, doc, doc.state, doc.version);
         if (doc.snapshot == null) {
-            debug && console.log('wait for first change', location, doc.version);
+            debug && console.log('wait for first change', doc_key, doc.version);
             return doc.once('change', function onceChange() {
-                debug && console.log('received first change', location, doc.snapshot);
+                debug && console.log('received first change', doc_key, doc.snapshot);
                 callback(null, doc);
             });
         } else {
@@ -740,14 +827,14 @@ function getCurrentUser() {
     //    return 'aiko';
 }
 
-function loadConfigKey(key, location, viewModels, vm_config, callback) {
-    debug && console.log('loadConfigKey', key, location);
+function loadConfigKey(key, loc, viewModels, vm_config, callback) {
+    debug && console.log('loadConfigKey', key, loc);
     if (key == 'user') {
         var user = getCurrentUser();
         if (user) {
-            location.name = user;
-            debug && console.log('loadConfig user', location);
-            loadLocation(location, 'json', callback);
+            loc.name = user;
+            debug && console.log('loadConfig user', locn);
+            loadLocation(loc, 'json', callback);
         } else {
             callback(null, {
                 snapshot: {},
@@ -767,7 +854,7 @@ function loadConfigKey(key, location, viewModels, vm_config, callback) {
             })
         }
     } else {
-        loadLocation(location, 'json', callback);
+        loadLocation(loc, 'json', callback);
     }
 }
 
@@ -808,10 +895,10 @@ function initializeConfig(doc, app, viewModels, callback) {
     }, callback);
 }
 
-function loadConfig(app, location, viewModels, callback) {
-    loadLocation(location, 'json', function handleConfig(err, doc) {
+function loadConfig(app, loc, viewModels, callback) {
+    loadLocation(loc, 'json', function handleConfig(err, doc) {
         if (err) {
-            console.error('error loadConfig', location, err);
+            console.error('error loadConfig', loc, err);
             return callback(err);
         }
         app['config'] = doc;
@@ -886,5 +973,5 @@ loadConfig(app, config_location, app.vm, configLoaded);
 <!-- @@_end_import__app_main_behaviour -->
 <!-- @@_end_import__app_main_body -->
 </body>
-</html>	
+</html>
 

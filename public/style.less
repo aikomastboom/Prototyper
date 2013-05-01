@@ -14,7 +14,7 @@ body {
   font-style: italic;
 }
 
-@header-height: 62px;
+@header-height: 67px;
 
 #header {
   position: fixed;
@@ -23,7 +23,7 @@ body {
   height: @header-height;
   width: 100%;
   background-color: black;
-  z-index: 1; /* fixes chrome dropdown-menu. TODO: Why do I need to mess with z-index only to make Chrome work?*/
+  z-index: 1000; /* fixes chrome dropdown-menu. TODO: Why do I need to mess with z-index only to make Chrome work?*/
 }
 
 #htext {
@@ -78,9 +78,19 @@ body {
   right: 0;
 }
 
-#tree {
+#project_tree {
   left: 0;
   right: @content-divider;
+  width: @content-divider;
+  margin: 5px;
+}
+
+#project_tree input {
+  width: 125px;
+}
+
+#project_tree select {
+  width: 140px;
 }
 
 #htext a {
