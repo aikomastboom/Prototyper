@@ -112,38 +112,41 @@ the following markers are handled.
 
 Where type is:
 
-script   ->
+#### script ->
 
     <script src="/content/collection/name/attribute.js" type="text/javascript" charset="utf-8"></script>
 
-style    ->
+#### style ->
 
     <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/css">
 
 
-less    ->
+#### less ->
 
     <link href="/content/collection/name/attribute.css" media="all" rel="stylesheet" type="text/less">
 
 
-markdaon ->
+#### markdown ->
 
     markdown__[collection]_[nameX]_[attribute]
 
 Parses /content/collection/name/attribute into HTML (assuming the attribute contains MD) and include.
 
 
+#### template ->
+
     template__[collectionX]_[nameX]_[attributeX]__context__[collectionY]_[nameY]
 
 Push /content/collectionX/nameX/attributeX thru Handlebars.. context=collectionY/nameY/attributeY and include
 
+#### remove ->
 
     remove_.*_end_remove
 
 removes markers and everything in between.
 
 
-#### not implemented yet:
+### not implemented yet:
 
     [type]__[collection]_[name]
     script   -> <script src="/content/collection/name.js"/>
