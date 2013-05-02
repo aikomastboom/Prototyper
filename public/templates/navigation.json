@@ -34,7 +34,7 @@
 						},
 						{
 							"title": "Preview Test One",
-							"url": "/page/app/test1.index.html",
+							"url": "/page/tests/test1.index.html",
 							"icon_class": "icon-home"
 						}
 					]

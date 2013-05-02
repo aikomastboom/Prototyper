@@ -112,8 +112,7 @@
 <!-- @@import__app_main_body_ -->
 <div id="header">
     <div id="htext">
-        Editing <b data-bind="text: $root.name()+'/'+$root._chosenAttributeId()"> </b>
-        <strong data-bind="text: _attributes().length"></strong>
+        Editing <b data-bind="text: $root.name()+'/'+($root._chosenAttribute && $root._chosenAttribute() && $root._chosenAttribute().title)"> </b>
 
         <div data-bind="visible: _getMode()">
             mode: <strong data-bind="text: _getMode()"></strong>
@@ -176,9 +175,9 @@
         <div class="controls">
             <select data-bind="options: projects(), optionsText: 'title', value: _selectedProject"></select>
         </div>
-        <div class="controls">
-            <input type="text" autocomplete="off">
-        </div>
+        <!--<div class="controls">-->
+            <!--<input type="text" autocomplete="off">-->
+        <!--</div>-->
         <div class="accordion" id="accordion"
              data-bind="foreach: _selectedProject().docs()">
             <div class="accordion-group">
@@ -191,9 +190,9 @@
                 <div data-bind="attr: { id: 'collapse' +$index() }"
                      class="accordion-body collapse">
                     <ul class="nav nav-pills nav-stacked">
-                        <!-- ko foreach: _attributes() -->
-                        <li data-bind="css: { active: $data in $root._activeAttributes() }">
-                            <a data-bind="text: $data,
+                        <!-- ko foreach: _attributeDocNames() -->
+                        <li data-bind="css: { active: $root._isActiveAttribute($data) }">
+                            <a data-bind="text: $data.title,
                                     click: $root._openAttribute"></a>
                         </li>
                         <!-- /ko -->
@@ -201,22 +200,16 @@
                 </div>
             </div>
         </div>
-        <ul>
-            <li>
-                <span data-bind="text: name"></span>
-                <!--<ul data-bind="template: { name: 'nodeTmpl', foreach: nodes }"></ul>-->
-            </li>
-        </ul>
     </div>
     <!-- /ko -->
     <div id="main">
         <div id="tabs">
             <ul class="nav nav-pills">
                 <li>
-                    <a class="btn" title="preview" data-bind="css: { disabled: _chosenAttributeId() == null }, enable: _chosenAttributeId, click: _previewAttribute"><i class="icon-eye-open"></i></a>
+                    <a class="btn" title="preview" data-bind="css: { disabled: _chosenAttribute() == null }, enable: _chosenAttribute, click: _previewAttribute"><i class="icon-eye-open"></i></a>
                 </li>
                 <li class="dropdown" >
-                    <a class="btn dropdown-toggle" data-bind="css: { disabled: _chosenAttributeId() == null }"
+                    <a class="btn dropdown-toggle selectedMode" data-bind="css: { disabled: _chosenAttribute() == null }"
                        data-toggle="dropdown"
                        href="#"><span data-bind="text: _selectedMode().name()">
                         Type
@@ -229,11 +222,12 @@
                         <!-- /ko -->
                     </ul>
                 </li>
-                <!-- ko foreach: _attributes() -->
-                <li data-bind="css: { active: $data == $root._chosenAttributeId() }">
-                    <a data-bind="text: $data, click: $root._goToAttribute"></a>
+                <!-- ko foreach: _activeAttributes() -->
+                <li data-bind="css: { active: $root._isChosenAttribute($data) }">
+                    <a data-bind="text: $data.title, click: $root._goToAttribute"></a>
                 </li>
                 <!-- /ko -->
+                <!--
                 <li class="pull-right">
                     <div class="nav navbar-form">
                         <label>
@@ -243,6 +237,7 @@
                         </label>
                     </div>
                 </li>
+                -->
             </ul>
         </div>
         <div id="editor"></div>
@@ -295,16 +290,16 @@ function main_functions(app, viewModel, vm_config) {
     }
     return {
         setMode: function (attribute, mode) {
-            debug && console.log('setmode', attribute, mode);
+            debug && console.log('setmode', attribute.title, mode);
             var ace_mode = mode;
             if (!mode || mode == 'none') {
                 ace_mode = 'markdown';
             }
-            if (app.doc.main.snapshot
-                    && app.doc.main.snapshot[attribute]) {
+            if (app.doc[attribute.doc_key].snapshot
+                    && app.doc[attribute.doc_key].snapshot[attribute.title]) {
                 var aceMode = require("ace/mode/" + ace_mode).Mode;
                 editor.session.setMode(new aceMode());
-                var currentMode = app.doc.main.snapshot[attribute].mode;
+                var currentMode = app.doc[attribute.doc_key].snapshot[attribute.title].mode;
                 if (!currentMode) {
                     currentMode = 'none';
                 }
@@ -313,21 +308,21 @@ function main_functions(app, viewModel, vm_config) {
                 if (currentMode != mode) {
                     debug && console.log('mode differs', attribute, currentMode, mode);
                     var op = [];
-                    if (app.doc.main.snapshot[attribute].mode) {
+                    if (app.doc[attribute.doc_key].snapshot[attribute.title].mode) {
                         debug && console.log('// remove', attribute, mode);
                         op.push({
-                            p: [attribute, 'mode'],
-                            od: app.doc.main.snapshot[attribute].mode
+                            p: [attribute.title, 'mode'],
+                            od: app.doc[attribute.doc_key].snapshot[attribute.title].mode
                         });
                     }
                     if (mode && mode != 'none') {
                         debug && console.log('//insert', attribute, mode);
                         op.push({
-                            p: [attribute, 'mode'],
+                            p: [attribute.title, 'mode'],
                             oi: mode
                         });
                     }
-                    app.doc.main.submitOp(op, function (err, result) {
+                    app.doc[attribute.doc_key].submitOp(op, function (err, result) {
                         debug && console.log('err', err, 'result', result);
                     });
                 }
@@ -337,23 +332,22 @@ function main_functions(app, viewModel, vm_config) {
         setDoc: function (attribute) {
             //noinspection JSUnresolvedFunction
             editor.ace.setReadOnly(true);
-            var mode = (app.doc.main.snapshot
-                    && app.doc.main.snapshot[attribute]
-                    && app.doc.main.snapshot[attribute].mode
+            var mode = (app.doc[attribute.doc_key].snapshot
+                    && app.doc[attribute.doc_key].snapshot[attribute.title]
+                    && app.doc[attribute.doc_key].snapshot[attribute.title].mode
                     ) || 'none';
-            debug && console.log('setDoc attribute, mode', attribute, mode);
+            debug && console.log('setDoc attribute, mode', attribute.title, mode);
             this.setMode(attribute, mode);
             //document.title = attribute;
 
-            var docName = viewModel.name() + ':' + attribute;
             if (editor.doc != null) {
                 debug && console.log('current cursor position', editor.ace.getCursorPosition());
-                app.fn.user.storeCurrentPosition(editor.doc.name, editor.ace.getCursorPosition())
+                app.fn.user.storeCurrentPosition(editor.doc.name, editor.ace.getCursorPosition());
                 editor.doc.close();
                 editor.doc.detach_ace();
             }
-            loadLocation({'collection': 'app', name: docName}, 'text', function(error, newDoc){
-                newDoc.on('error', function(err){
+            loadLocation(attribute.loc, 'text', function (error, newDoc) {
+                newDoc.on('error', function (err) {
                     editor.ace.setReadOnly(true);
                 });
 
@@ -394,8 +388,8 @@ function main_functions(app, viewModel, vm_config) {
         },
 
         getModeForChosenAttribute: function () {
-            var attribute = viewModel._chosenAttributeId();
-            debug && console.log('getModeForChosenAttribute._chosenAttributeId', attribute);
+            var attribute = viewModel._chosenAttribute();
+            debug && console.log('getModeForChosenAttribute._chosenAttribute', attribute);
             return this.getModeForAttribute(attribute)
         },
 
@@ -416,7 +410,8 @@ function main_functions(app, viewModel, vm_config) {
             }
             var mode = _.find(viewModel._availableModes(),
                     function (mode) {
-                        return viewModel[attribute].mode && (mode.ace() == viewModel[attribute].mode());
+                        var vmMode = app.doc[attribute.doc_key].snapshot[attribute.title].mode;
+                        return vmMode == mode.ace();
                     });
             if (mode) {
                 debug && console.log('getModeForAttribute', mode);
@@ -446,6 +441,25 @@ function addComputed(snapshot) {
     );
 }
 
+function getAttributeDocNames(snapshot, doc_key, parentLocation) {
+    if (!snapshot._attributes) {
+        addComputed(snapshot);
+    }
+    var loc = normalizeLocation(parentLocation);
+    var pairs = [];
+    _.forEach(snapshot._attributes, function (key) {
+        pairs.push({
+            title: key,
+            doc_key: doc_key,
+            loc: {
+                collection: loc.collection,
+                name: loc.name + ':' + key
+            }
+        })
+    });
+    return pairs;
+}
+
 function open_in_new_tab(url) {
     var win = window.open(url, '_blank');
     win.focus();
@@ -456,54 +470,77 @@ function initViewModel_main(app, key, doc, vm_config) {
 
     var mapping = vm_config.mapping;
     var snapshot = doc.snapshot;
-    addComputed(snapshot);
     var viewModel = ko.mapping.fromJS(snapshot, mapping);
-    viewModel._chosenAttributeId = ko.observable();
+    viewModel._chosenAttribute = ko.observable();
     viewModel._newAttribute = ko.observable();
     viewModel._selectedMode = ko.observable();
     app.fn[key] = main_functions(app, viewModel, vm_config);
     viewModel._selectedMode(app.fn.main.noneMode());
     // Behaviours
     viewModel._goToAttribute = function (attribute) {
-        viewModel._chosenAttributeId(attribute);
+        viewModel._chosenAttribute(attribute);
         app.fn.main.updateSelectedMode();
         app.fn.main.setDoc(attribute);
+        if (!_.find(
+                viewModel._activeAttributes(),
+                function (active) {
+                    return active.doc_key == attribute.doc_key
+                            && active.title == attribute.title;
+                }
+        )) {
+            viewModel._activeAttributes.push(attribute);
+        }
     };
 
-    viewModel._newAttribute.subscribe(function (newValue) {
-        if (newValue) {
-            app.doc.main.submitOp({
-                p: [newValue],
-                oi: {}
-            }, function (err, result) {
-                //viewModel._newAttribute("");
-            });
-            viewModel._goToAttribute(newValue);
+    viewModel._isChosenAttribute = function (attribute) {
+        var active = viewModel._chosenAttribute();
+        if (!active || !attribute) {
+            return false;
         }
-    });
+        return active.doc_key == attribute.doc_key
+                && active.title == attribute.title;
+    };
 
+    viewModel._activeAttributes = ko.observableArray();
+
+    /*
+     viewModel._newAttribute.subscribe(function (newValue) {
+     if (newValue) {
+     app.doc.main.submitOp({
+     p: [newValue],
+     oi: {}
+     }, function (err, result) {
+     //viewModel._newAttribute("");
+     });
+     viewModel._goToAttribute(newValue);
+     }
+     });
+     */
     viewModel._previewAttribute = function () {
-        var id = viewModel._chosenAttributeId();
-        if (id) {
-            var ext = app.fn.main.getExtensionForAttribute(id);
-            var url = '/page/app/' + key + '.' + id + ext + '#!watch';
+        var attribute = viewModel._chosenAttribute();
+        if (attribute) {
+            var ext = app.fn.main.getExtensionForAttribute(attribute);
+            var url = '/page/' + attribute.loc.collection + '/' + attribute.loc.name.replace(':', '.') + ext + '#!watch';
             open_in_new_tab(url);
         }
 
     };
 
     viewModel._getMode = ko.computed(function () {
-        var id = viewModel._chosenAttributeId();
-        return id && viewModel[id].mode;
+        var attribute = viewModel._chosenAttribute();
+        return attribute && app.doc[attribute.doc_key].snapshot[attribute.title].mode;
     });
 
     viewModel._selectedMode.subscribe(function (newValue) {
-        if (app.state.vm.updating[key]) {
-            console.error('// fires during ko.mapping.fromJS');
-        }
-        if (newValue && !app.state.vm.updating[key]) {
-            debug && console.log('_selectedMode, newValue', newValue.ace());
-            app.fn.main.setMode(viewModel._chosenAttributeId(), newValue.ace());
+        var attribute = viewModel._chosenAttribute();
+        if (attribute) {
+            if (app.state.vm.updating[attribute.doc_key]) {
+                console.error('// fires during ko.mapping.fromJS');
+            }
+            if (newValue && !app.state.vm.updating[attribute.doc_key]) {
+                debug && console.log('_selectedMode, newValue', newValue.ace());
+                app.fn.main.setMode(attribute, newValue.ace());
+            }
         }
     });
 
@@ -570,7 +607,7 @@ function user_functions(app, viewModel, vm_config) {
             var ops = [];
             var sub_doc = doc.snapshot;
             var current = {};
-            for ( var x = 0; x < path.length; x++) {
+            for (var x = 0; x < path.length; x++) {
                 var check = sub_doc[path[x]];
                 if (check) {
                     sub_doc = check;
@@ -587,11 +624,11 @@ function user_functions(app, viewModel, vm_config) {
             return callback(null, ops, current);
         },
 
-        storeCurrentPosition: function( name, position) {
+        storeCurrentPosition: function (name, position) {
             cursorPositions[name] = position;
 
             var doc = app.doc.user;
-            var path = ['positions',name];
+            var path = ['positions', name];
             this.ensurePath(doc, path, function (err, ops, current) {
                 ops.push({
                     p: path,
@@ -599,13 +636,13 @@ function user_functions(app, viewModel, vm_config) {
                     oi: position
                 });
                 doc.submitOp(ops, function (err) {
-                    console.log('set position',position,err);
+                    console.log('set position', position, err);
                 });
             });
         },
 
         getCurrentPosition: function (name) {
-            var position_doc = app.doc.user.at(['positions',name]);
+            var position_doc = app.doc.user.at(['positions', name]);
             var position = position_doc.get();
             if (!position) {
                 position = cursorPositions[name];
@@ -642,6 +679,21 @@ function initViewModel_user(app, key, doc, vm_config) {
     return viewModel;
 }
 
+function normalizeLocation(loc) {
+    var collection = loc.collection;
+    if (typeof loc.collection == 'function') {
+        collection = loc.collection();
+    }
+    var name = loc.name;
+    if (typeof loc.name == 'function') {
+        name = loc.name();
+    }
+    return {
+        collection: collection,
+        name: name
+    };
+}
+
 function locationFromKey(key) {
     var parts = key.split(':');
     return {
@@ -651,15 +703,8 @@ function locationFromKey(key) {
 }
 
 function keyFromLocation(loc) {
-    var collection = loc.collection;
-    if (typeof loc.collection == 'function') {
-        collection = loc.collection();
-    }
-    var name = loc.name;
-    if (typeof loc.collection == 'function') {
-        name = loc.name();
-    }
-    return collection + ':' + name;
+    var _loc = normalizeLocation(loc);
+    return _loc.collection + ':' + _loc.name;
 }
 
 function initViewModel_projects(app, key, doc, vm_config) {
@@ -674,32 +719,48 @@ function initViewModel_projects(app, key, doc, vm_config) {
         _.forEach(project.docs(), function (loc, index) {
             var key = keyFromLocation(loc);
             if (app.doc[key]) {
-                var attributes = app.doc[key].snapshot._attributes;
-                project.docs()[index]._attributes = ko.observableArray(attributes);
+                var attributes = getAttributeDocNames(app.doc[key].snapshot, key, loc);
+                project.docs()[index]._attributeDocNames = ko.observableArray(attributes);
             } else {
-                project.docs()[index]._attributes = ko.observableArray();
+                project.docs()[index]._attributeDocNames = ko.observableArray();
             }
         })
     });
 
     viewModel._loadAttributes = function (index, loc) {
-        var doc_key = keyFromLocation(loc);
-        if (!app.doc[doc_key]) {
-            console.log('loc', loc);
-            loadLocation(loc, 'json', function (err, key_doc) {
-                app.doc[doc_key] = key_doc;
-                function onChange() {
-                    addComputed(key_doc.snapshot);
-                    viewModel._selectedProject().docs()[index]._attributes(key_doc.snapshot._attributes);
-                }
+        return function (data, event) {
+            var doc_key = keyFromLocation(loc);
+            if (!app.doc[doc_key]) {
+                loadLocation(loc, 'json', function (err, key_doc) {
+                    app.doc[doc_key] = key_doc;
+                    function onChange() {
+                        addComputed(key_doc.snapshot);
+                        var attributes = getAttributeDocNames(key_doc.snapshot, doc_key, loc);
+                        viewModel._selectedProject().docs()[index]._attributeDocNames(
+                                attributes
+                        );
+                    }
 
-                onChange();
-            });
+                    onChange();
+                });
+            }
         }
     };
 
-    viewModel._loadedAttributes = ko.observableArray();
-    viewModel._activeAttributes = ko.observableArray();
+    viewModel._openAttribute = function (data) {
+        debug && console.log('_openAttribute data', data);
+        app.vm.main._goToAttribute(data);
+    };
+
+    viewModel._isActiveAttribute = function (attribute) {
+        return _.find(
+                app.vm.main._activeAttributes(),
+                function (active) {
+                    return active.doc_key == attribute.doc_key
+                            && active.title == attribute.title;
+                }
+        );
+    };
 
     return viewModel;
 }
@@ -797,7 +858,7 @@ function initializeViewModel(app, doc, key, viewModels, vm_config) {
 function loadLocation(loc, type, callback) {
     var doc_key = keyFromLocation(loc);
     debug && console.log('opening location', doc_key);
-    return sharejs.open(type+':' + doc_key, type, function (err, doc) {
+    return sharejs.open(type + ':' + doc_key, type, function (err, doc) {
         if (err) {
             console.error('error loadLocation', doc_key, err, doc);
             return callback(err);
@@ -838,7 +899,7 @@ function loadConfigKey(key, loc, viewModels, vm_config, callback) {
         } else {
             callback(null, {
                 snapshot: {},
-                on: function(event, handler){
+                on: function (event, handler) {
                     console.log('blank config', key, 'event', event, 'handler', handler);
                 },
                 submitOp: function (ops, callback) {
@@ -887,7 +948,7 @@ function initializeConfig(doc, app, viewModels, callback) {
     var snapshot = doc.snapshot;
     return async.each(_.keys(snapshot), function handleConfigKeys(key, iterator_callback) {
         debug && console.log('+ handleConfigKey', key);
-        if( snapshot[key].hasOwnProperty('collection')) {
+        if (snapshot[key].hasOwnProperty('collection')) {
             return handleConfigKey(app, key, snapshot, viewModels, iterator_callback);
         } else {
             return iterator_callback();
