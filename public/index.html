@@ -112,7 +112,7 @@
 <!-- @@import__app_main_body_ -->
 <div id="header">
     <div id="htext">
-        Editing <b data-bind="text: $root.name()+'/'+($root._chosenAttribute && $root._chosenAttribute() && $root._chosenAttribute().title)"> </b>
+        Editing <b data-bind="text: $root.name()+'/'+($root._chosenAttribute && $root._chosenAttribute() && $root._chosenAttribute().attribute)"> </b>
 
         <div data-bind="visible: _getMode()">
             mode: <strong data-bind="text: _getMode()"></strong>
@@ -192,7 +192,7 @@
                     <ul class="nav nav-pills nav-stacked">
                         <!-- ko foreach: _attributeDocNames() -->
                         <li data-bind="css: { active: $root._isActiveAttribute($data) }">
-                            <a data-bind="text: $data.title,
+                            <a data-bind="text: $data.attribute,
                                     click: $root._openAttribute"></a>
                         </li>
                         <!-- /ko -->
@@ -224,7 +224,7 @@
                 </li>
                 <!-- ko foreach: _activeAttributes() -->
                 <li data-bind="css: { active: $root._isChosenAttribute($data) }">
-                    <a data-bind="text: $data.title, click: $root._goToAttribute"></a>
+                    <a data-bind="text: $data.attribute, click: $root._goToAttribute"></a>
                 </li>
                 <!-- /ko -->
                 <!--
@@ -290,16 +290,16 @@ function main_functions(app, viewModel, vm_config) {
     }
     return {
         setMode: function (attribute, mode) {
-            debug && console.log('setmode', attribute.title, mode);
+            debug && console.log('setmode', attribute.attribute, mode);
             var ace_mode = mode;
             if (!mode || mode == 'none') {
                 ace_mode = 'markdown';
             }
-            if (app.doc[attribute.doc_key].snapshot
-                    && app.doc[attribute.doc_key].snapshot[attribute.title]) {
+            var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
+            if (attributeDoc) {
                 var aceMode = require("ace/mode/" + ace_mode).Mode;
                 editor.session.setMode(new aceMode());
-                var currentMode = app.doc[attribute.doc_key].snapshot[attribute.title].mode;
+                var currentMode = attributeDoc.mode;
                 if (!currentMode) {
                     currentMode = 'none';
                 }
@@ -307,22 +307,10 @@ function main_functions(app, viewModel, vm_config) {
 
                 if (currentMode != mode) {
                     debug && console.log('mode differs', attribute, currentMode, mode);
-                    var op = [];
-                    if (app.doc[attribute.doc_key].snapshot[attribute.title].mode) {
-                        debug && console.log('// remove', attribute, mode);
-                        op.push({
-                            p: [attribute.title, 'mode'],
-                            od: app.doc[attribute.doc_key].snapshot[attribute.title].mode
-                        });
+                    function doInsert(mode) {
+                        return mode && mode !='none';
                     }
-                    if (mode && mode != 'none') {
-                        debug && console.log('//insert', attribute, mode);
-                        op.push({
-                            p: [attribute.title, 'mode'],
-                            oi: mode
-                        });
-                    }
-                    app.doc[attribute.doc_key].submitOp(op, function (err, result) {
+                    replaceAttributeDocKey(app, attribute, 'mode', mode, doInsert, function (err, result) {
                         debug && console.log('err', err, 'result', result);
                     });
                 }
@@ -332,10 +320,8 @@ function main_functions(app, viewModel, vm_config) {
         setDoc: function (attribute) {
             //noinspection JSUnresolvedFunction
             editor.ace.setReadOnly(true);
-            var mode = (app.doc[attribute.doc_key].snapshot
-                    && app.doc[attribute.doc_key].snapshot[attribute.title]
-                    && app.doc[attribute.doc_key].snapshot[attribute.title].mode
-                    ) || 'none';
+            var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
+            var mode = (attributeDoc && attributeDoc.mode) || 'none';
             debug && console.log('setDoc attribute, mode', attribute.title, mode);
             this.setMode(attribute, mode);
             //document.title = attribute;
@@ -346,7 +332,7 @@ function main_functions(app, viewModel, vm_config) {
                 editor.doc.close();
                 editor.doc.detach_ace();
             }
-            loadLocation(attribute.loc, 'text', function (error, newDoc) {
+            loadAttributeTextDoc(attribute, function (error, newDoc) {
                 newDoc.on('error', function (err) {
                     editor.ace.setReadOnly(true);
                 });
@@ -408,10 +394,14 @@ function main_functions(app, viewModel, vm_config) {
             if (!attribute) {
                 return this.noneMode();
             }
+            var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
+            var docMode = (attributeDoc && attributeDoc.mode);
+            if (!docMode) {
+                return this.noneMode();
+            }
             var mode = _.find(viewModel._availableModes(),
                     function (mode) {
-                        var vmMode = app.doc[attribute.doc_key].snapshot[attribute.title].mode;
-                        return vmMode == mode.ace();
+                        return docMode == mode.ace();
                     });
             if (mode) {
                 debug && console.log('getModeForAttribute', mode);
@@ -441,7 +431,7 @@ function addComputed(snapshot) {
     );
 }
 
-function getAttributeDocNames(snapshot, doc_key, parentLocation) {
+function getAttributeDocNames(snapshot, parentLocation) {
     if (!snapshot._attributes) {
         addComputed(snapshot);
     }
@@ -449,15 +439,87 @@ function getAttributeDocNames(snapshot, doc_key, parentLocation) {
     var pairs = [];
     _.forEach(snapshot._attributes, function (key) {
         pairs.push({
-            title: key,
-            doc_key: doc_key,
-            loc: {
-                collection: loc.collection,
-                name: loc.name + ':' + key
-            }
+            collection: loc.collection,
+            name: loc.name,
+            attribute: key
         })
     });
     return pairs;
+}
+
+// uniquely identifying an attribute
+function getAttributeId(attribute) {
+    return getDocId(attribute) + ':' + attribute.attribute;
+}
+
+function getAttributeLocation(attribute) {
+    return {
+        collection: attribute.collection,
+        name: attribute.name,
+        attribute: attribute.attribute
+    }
+}
+
+// identifying attributes parent doc
+function getDocId(attribute) {
+    return attribute
+            && attribute.collection && attribute.name
+            && (attribute.collection + ':' + attribute.name);
+}
+
+function getAttributeDoc(app,attribute) {
+    var docId = getDocId(attribute);
+    return docId && app.doc[docId];
+}
+
+function getAttributeFromDocSnapshot(app,attribute) {
+    var doc = getAttributeDoc(app, attribute);
+    return doc && doc.snapshot && doc.snapshot[attribute.attribute];
+}
+
+function getAttributeUrl(attribute) {
+    return attribute.collection + '/' + attribute.name + '.' + attribute.attribute;
+}
+
+function replaceAttributeDocKey(app, attribute, key, value, doInsert, callback) {
+var op = [];
+    var attributeDoc = getAttributeDoc(app, attribute);
+    if (attributeDoc && attributeDoc[key]) {
+    debug && console.log('// remove', key);
+    op.push({
+        p: [attribute.attribute, key],
+        od: attributeDoc[key]
+    });
+    }
+    if (typeof doInsert == 'function' && doInsert(value) || doInsert) {
+    debug && console.log('//insert', key);
+        op.push({
+            p: [attribute.attribute, key],
+            oi: value
+        });
+    }
+    attributeDoc.submitOp(op, function (err, result) {
+        debug && console.log('err', err, 'result', result);
+        return callback && callback(err,result);
+});
+}
+
+function loadAttributeTextDoc(attribute, callback) {
+    loadLocation(getAttributeLocation(attribute), 'text', function (err, doc) {
+        if (err) {
+            console.error('error loading attribute doc',err)
+            return callback && callback(err);
+        }
+        return callback && callback(err, doc);
+    });
+}
+
+function equalAttributes(first, second) {
+    return first && second &&
+            (typeof first == 'object') && (typeof second == 'object') &&
+            first.collection == second.collection &&
+            first.name == second.name &&
+            first.attribute == second.attribute;
 }
 
 function open_in_new_tab(url) {
@@ -484,10 +546,9 @@ function initViewModel_main(app, key, doc, vm_config) {
         if (!_.find(
                 viewModel._activeAttributes(),
                 function (active) {
-                    return active.doc_key == attribute.doc_key
-                            && active.title == attribute.title;
+                    return equalAttributes(active,attribute);
                 }
-        )) {
+        )) { // TODO: do not update viewmodel, instead update sharedoc.
             viewModel._activeAttributes.push(attribute);
         }
     };
@@ -497,8 +558,7 @@ function initViewModel_main(app, key, doc, vm_config) {
         if (!active || !attribute) {
             return false;
         }
-        return active.doc_key == attribute.doc_key
-                && active.title == attribute.title;
+        return equalAttributes(active,attribute);
     };
 
     viewModel._activeAttributes = ko.observableArray();
@@ -521,7 +581,7 @@ function initViewModel_main(app, key, doc, vm_config) {
         var attribute = viewModel._chosenAttribute();
         if (attribute) {
             var ext = app.fn.main.getExtensionForAttribute(attribute);
-            var url = '/page/' + attribute.loc.collection + '/' + attribute.loc.name.replace(':', '.') + ext + '#!watch';
+            var url = '/page' + getAttributeUrl(attribute) + ext + '#!watch';
             open_in_new_tab(url);
         }
 
@@ -529,16 +589,21 @@ function initViewModel_main(app, key, doc, vm_config) {
 
     viewModel._getMode = ko.computed(function () {
         var attribute = viewModel._chosenAttribute();
-        return attribute && app.doc[attribute.doc_key].snapshot[attribute.title].mode;
+        if (!attribute) return attribute;
+
+        var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
+
+        return attribute && attributeDoc && attributeDoc.mode;
     });
 
     viewModel._selectedMode.subscribe(function (newValue) {
         var attribute = viewModel._chosenAttribute();
         if (attribute) {
-            if (app.state.vm.updating[attribute.doc_key]) {
+            var docId = getDocId(attribute);
+            if (app.state.vm.updating[docId]) {
                 console.error('// fires during ko.mapping.fromJS');
             }
-            if (newValue && !app.state.vm.updating[attribute.doc_key]) {
+            if (newValue && !app.state.vm.updating[docId]) {
                 debug && console.log('_selectedMode, newValue', newValue.ace());
                 app.fn.main.setMode(attribute, newValue.ace());
             }
@@ -638,7 +703,7 @@ function user_functions(app, viewModel, vm_config) {
                 });
                 debug && console.log('storeCurrentPosition ops', ops);
                 doc.submitOp(ops, function (err) {
-                    console.log('set position', position, err);
+                    debug && console.log('set position', position, err);
                 });
             });
         },
@@ -655,8 +720,11 @@ function user_functions(app, viewModel, vm_config) {
                 position = cursorPositions[name];
             }
             return position
-        }
+        },
 
+        addActiveAttribute: function (attribute) {
+            var path = ['active', getAttributeId(attribute)];
+        }
     }
 }
 
@@ -696,23 +764,55 @@ function normalizeLocation(loc) {
     if (typeof loc.name == 'function') {
         name = loc.name();
     }
-    return {
+    var normal = {
         collection: collection,
         name: name
     };
+    if (loc.attribute) {
+        var attribute = loc.attribute;
+        if (typeof loc.attribute == 'function') {
+            attribute = loc.attribute();
+        }
+        normal.attribute = attribute;
+
+    }
+    return normal;
 }
 
 function locationFromKey(key) {
     var parts = key.split(':');
-    return {
+    var loc = {
         collection: parts[0],
         name: parts[1]
     };
+    var attribute = parts[2];
+    if (attribute) {
+        loc.attribute = attribute;
+    }
+    return loc;
 }
 
 function keyFromLocation(loc) {
     var _loc = normalizeLocation(loc);
-    return _loc.collection + ':' + _loc.name;
+    var key = _loc.collection + ':' + _loc.name;
+    if (_loc.attribute) {
+        key += ':' + _loc.attribute;
+    }
+    return key;
+}
+
+function setDoc(app, docId, doc) {
+    if (!app.doc) {
+        app['doc'] = {};
+    }
+    app.doc[docId] = doc;
+}
+function getDoc(app, docId){
+    return app && app.doc && app.doc[docId];
+}
+
+function getDocSnapshot(app, docId){
+    return getDoc(app, docId) && app.doc[docId].snapshot;
 }
 
 function initViewModel_projects(app, key, doc, vm_config) {
@@ -725,9 +825,10 @@ function initViewModel_projects(app, key, doc, vm_config) {
     viewModel._selectedProject = ko.observable();
     viewModel._selectedProject.subscribe(function (project) {
         _.forEach(project.docs(), function (loc, index) {
-            var key = keyFromLocation(loc);
-            if (app.doc[key]) {
-                var attributes = getAttributeDocNames(app.doc[key].snapshot, key, loc);
+            var docId = keyFromLocation(loc);
+            if (getDoc(app, docId)) {
+                var docSnapshot = getDocSnapshot(app, docId);
+                var attributes = getAttributeDocNames(docSnapshot, loc);
                 project.docs()[index]._attributeDocNames = ko.observableArray(attributes);
             } else {
                 project.docs()[index]._attributeDocNames = ko.observableArray();
@@ -737,13 +838,14 @@ function initViewModel_projects(app, key, doc, vm_config) {
 
     viewModel._loadAttributes = function (index, loc) {
         return function (data, event) {
-            var doc_key = keyFromLocation(loc);
-            if (!app.doc[doc_key]) {
+            var docId = keyFromLocation(loc);
+            if (!getDoc(app,docId)) {
                 loadLocation(loc, 'json', function (err, key_doc) {
-                    app.doc[doc_key] = key_doc;
+                    setDoc(app, docId, key_doc);
                     function onChange() {
-                        addComputed(key_doc.snapshot);
-                        var attributes = getAttributeDocNames(key_doc.snapshot, doc_key, loc);
+                        var docSnapshot = getDocSnapshot(app, docId);
+                        addComputed(docSnapshot);
+                        var attributes = getAttributeDocNames(docSnapshot, loc);
                         viewModel._selectedProject().docs()[index]._attributeDocNames(
                                 attributes
                         );
@@ -764,8 +866,7 @@ function initViewModel_projects(app, key, doc, vm_config) {
         return _.find(
                 app.vm.main._activeAttributes(),
                 function (active) {
-                    return active.doc_key == attribute.doc_key
-                            && active.title == attribute.title;
+                    return equalAttributes(active, attribute);
                 }
         );
     };
