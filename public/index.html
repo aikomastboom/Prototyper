@@ -504,18 +504,19 @@ function initViewModel_main(app, key, doc, vm_config) {
     viewModel._activeAttributes = ko.observableArray();
 
     /*
-     viewModel._newAttribute.subscribe(function (newValue) {
-     if (newValue) {
-     app.doc.main.submitOp({
-     p: [newValue],
-     oi: {}
-     }, function (err, result) {
-     //viewModel._newAttribute("");
-     });
-     viewModel._goToAttribute(newValue);
-     }
-     });
-     */
+    viewModel._newAttribute.subscribe(function (newValue) {
+        if (newValue) {
+            app.doc.main.submitOp({
+                p: [newValue],
+                oi: {}
+            }, function (err, result) {
+                //viewModel._newAttribute("");
+            });
+            viewModel._goToAttribute(newValue);
+        }
+    });
+    */
+
     viewModel._previewAttribute = function () {
         var attribute = viewModel._chosenAttribute();
         if (attribute) {
@@ -635,6 +636,7 @@ function user_functions(app, viewModel, vm_config) {
                     od: current,
                     oi: position
                 });
+                debug && console.log('storeCurrentPosition ops', ops);
                 doc.submitOp(ops, function (err) {
                     console.log('set position', position, err);
                 });
@@ -643,12 +645,18 @@ function user_functions(app, viewModel, vm_config) {
 
         getCurrentPosition: function (name) {
             var position_doc = app.doc.user.at(['positions', name]);
-            var position = position_doc.get();
+            var position = null;
+            try {
+                position = position_doc.get();
+            }catch (e) {
+                // ignore 'bad path' error
+            }
             if (!position) {
                 position = cursorPositions[name];
             }
             return position
         }
+
     }
 }
 
