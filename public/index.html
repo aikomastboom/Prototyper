@@ -645,9 +645,10 @@ function updateViewModel_main(app, vmName) {
     app.debug && console.log('updated main viewModel', viewModel);
 }
 
-function post_updateViewModel_main(app, viewModel, key, doc, vm_config) {
-    app.debug && console.log('post_update main viewModel', viewModel);
-    app.fn.main.updateSelectedMode();
+function post_updateViewModel_main(app, vmName) {
+    app.debug && console.log('post_update main viewModel', vmName);
+    var viewModel = getViewModel(app, vmName);
+    viewModel.updateSelectedMode();
 }
 
 /* crazy expensive caching tree traverse */
@@ -936,17 +937,17 @@ function updateViewModel(app, vmName) {
     app.state.vm.updating[vmName] = false;
 }
 
-function defaultPostUpdateViewModel(app, viewModel, key, doc, vm_config) {
-    app.debug && console.log('post_updating', key, 'viewModel', viewModel, vm_config);
+function defaultPostUpdateViewModel(app, vmName) {
+    app.debug && console.log('post_updating', vmName, 'viewModel');
 }
 
-function post_updateViewModel(app, viewModels, key, doc, vm_config) {
+function post_updateViewModel(app, vmName) {
     var viewModelMethod = defaultPostUpdateViewModel;
-    var methodName = 'post_updateViewModel_' + key;
+    var methodName = 'post_updateViewModel_' + vmName;
     if (this.hasOwnProperty(methodName)) {
         viewModelMethod = this[methodName];
     }
-    viewModelMethod(app, viewModels[key], key, doc, vm_config);
+    viewModelMethod(app, vmName);
 }
 
 function setViewModel(app, vmName, vm) {
