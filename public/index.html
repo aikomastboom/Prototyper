@@ -271,13 +271,13 @@
 <!-- @@template__app_main_behaviour__context__app_main -->
 <!-- @@import__app_main_behaviour_ -->
 <script>
-var debug = false;
 
-function main_functions(app, viewModel, vm_config) {
+function main_functions(app, vmName) {
+    var vm_config = getViewModelConfig(app, vmName);
     var editor = null;
 
     if (!app.state.editor || (app.state.editor.editorId |= vm_config.editorId)) {
-        var aceInstance = ace.edit(vm_config.editorId || "editor");
+        var aceInstance = app.ace.edit(vm_config.editorId || "editor");
         editor = {
             editorId: vm_config.editorId,
             ace: aceInstance,
@@ -290,7 +290,7 @@ function main_functions(app, viewModel, vm_config) {
     }
     return {
         setMode: function (attribute, mode) {
-            debug && console.log('setmode', attribute.attribute, mode);
+            app.debug && console.log('setmode', attribute.attribute, mode);
             var ace_mode = mode;
             if (!mode || mode == 'none') {
                 ace_mode = 'markdown';
@@ -303,38 +303,43 @@ function main_functions(app, viewModel, vm_config) {
                 if (!currentMode) {
                     currentMode = 'none';
                 }
-                debug && console.log('modes', attribute, currentMode, mode);
+                app.debug && console.log('modes', attribute, currentMode, mode);
 
                 if (currentMode != mode) {
-                    debug && console.log('mode differs', attribute, currentMode, mode);
+                    app.debug && console.log('mode differs', attribute, currentMode, mode);
                     function doInsert(mode) {
                         return mode && mode !='none';
                     }
                     replaceAttributeDocKey(app, attribute, 'mode', mode, doInsert, function (err, result) {
-                        debug && console.log('err', err, 'result', result);
+                        app.debug && console.log('err', err, 'result', result);
                     });
                 }
             }
         },
 
-        setDoc: function (attribute) {
+        setDoc: function (attribute, callback) {
             //noinspection JSUnresolvedFunction
             editor.ace.setReadOnly(true);
             var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
             var mode = (attributeDoc && attributeDoc.mode) || 'none';
-            debug && console.log('setDoc attribute, mode', attribute.title, mode);
+            app.debug && console.log('setDoc attribute, mode', attribute.title, mode);
             this.setMode(attribute, mode);
             //document.title = attribute;
 
             if (editor.doc != null) {
-                debug && console.log('current cursor position', editor.ace.getCursorPosition());
+                app.debug && console.log('current cursor position', editor.ace.getCursorPosition());
                 app.fn.user.storeCurrentPosition(editor.doc.name, editor.ace.getCursorPosition());
                 editor.doc.close();
                 editor.doc.detach_ace();
             }
-            loadAttributeTextDoc(attribute, function (error, newDoc) {
+            loadAttributeTextDoc(app, attribute, function (error, newDoc) {
+                if (error) {
+                    editor.ace.setReadOnly(true);
+                    callback && callback(error);
+                }
                 newDoc.on('error', function (err) {
                     editor.ace.setReadOnly(true);
+                    callback && callback(err);
                 });
 
                 editor.doc = newDoc;
@@ -348,76 +353,21 @@ function main_functions(app, viewModel, vm_config) {
                 //noinspection JSUnresolvedFunction
 
                 var moveTo = app.fn.user.getCurrentPosition(editor.doc.name);
-                if (!moveTo) {
+                if (!(moveTo && moveTo.row && moveTo.column)) {
                     moveTo = {
                         row: 0,
                         column: 0
                     }
                 }
-                debug && console.log('moveTo', moveTo);
+                app.debug && console.log('moveTo', moveTo);
                 editor.ace.moveCursorToPosition(moveTo);
                 editor.ace.centerSelection();
 
                 editor.ace.setReadOnly(false);
 
                 editor.ace.focus(); //To focus the ace editor
+                callback && callback(null);
             });
-        },
-
-        getExtensionForAttribute: function (attribute) {
-            var mode = this.getModeForAttribute(attribute);
-            if (mode && mode.ace() == 'markdown') {
-                return '.md';
-            } else {
-                return '.html';
-            }
-        },
-
-        getModeForChosenAttribute: function () {
-            var attribute = viewModel._chosenAttribute();
-            debug && console.log('getModeForChosenAttribute._chosenAttribute', attribute);
-            return this.getModeForAttribute(attribute)
-        },
-
-        noneAceMode: null, /* does not get invalidated */
-        noneMode: function () {
-            if (!this.noneAceMode) {
-                this.noneAceMode = _.find(viewModel._availableModes(),
-                        function (mode) {
-                            return mode.ace() == 'none';
-                        });
-            }
-            return this.noneAceMode;
-        },
-
-        getModeForAttribute: function (attribute) {
-            if (!attribute) {
-                return this.noneMode();
-            }
-            var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
-            var docMode = (attributeDoc && attributeDoc.mode);
-            if (!docMode) {
-                return this.noneMode();
-            }
-            var mode = _.find(viewModel._availableModes(),
-                    function (mode) {
-                        return docMode == mode.ace();
-                    });
-            if (mode) {
-                debug && console.log('getModeForAttribute', mode);
-                return mode;
-            } else {
-                return this.noneMode();
-            }
-        },
-
-        updateSelectedMode: function () {
-            var selectedMode = this.getModeForChosenAttribute();
-            debug && console.log('updateSelectedMode.getModeForChosenAttribute', selectedMode);
-            if (selectedMode) {
-                debug && console.log('setSelectedMode:', selectedMode.ace());
-                viewModel._selectedMode(selectedMode);
-            }
         }
     }
 }
@@ -485,27 +435,27 @@ function replaceAttributeDocKey(app, attribute, key, value, doInsert, callback) 
 var op = [];
     var attributeDoc = getAttributeDoc(app, attribute);
     if (attributeDoc && attributeDoc[key]) {
-    debug && console.log('// remove', key);
+    app.debug && console.log('// remove', key);
     op.push({
         p: [attribute.attribute, key],
         od: attributeDoc[key]
     });
     }
     if (typeof doInsert == 'function' && doInsert(value) || doInsert) {
-    debug && console.log('//insert', key);
+    app.debug && console.log('//insert', key);
         op.push({
             p: [attribute.attribute, key],
             oi: value
         });
     }
     attributeDoc.submitOp(op, function (err, result) {
-        debug && console.log('err', err, 'result', result);
+        app.debug && console.log('err', err, 'result', result);
         return callback && callback(err,result);
 });
 }
 
-function loadAttributeTextDoc(attribute, callback) {
-    loadLocation(getAttributeLocation(attribute), 'text', function (err, doc) {
+function loadAttributeTextDoc(app, attribute, callback) {
+    loadLocation(app, getAttributeLocation(attribute), 'text', function (err, doc) {
         if (err) {
             console.error('error loading attribute doc',err)
             return callback && callback(err);
@@ -527,31 +477,32 @@ function open_in_new_tab(url) {
     win.focus();
 }
 
-function initViewModel_main(app, key, doc, vm_config) {
-    debug && console.log('initViewModel_main');
-
+function initViewModel_main(app, vmName) {
+    app.debug && console.log('initViewModel_main');
+    var vm_config = getViewModelConfig(app, vmName);
     var mapping = vm_config.mapping;
-    var snapshot = doc.snapshot;
-    var viewModel = ko.mapping.fromJS(snapshot, mapping);
-    viewModel._chosenAttribute = ko.observable();
-    viewModel._newAttribute = ko.observable();
-    viewModel._selectedMode = ko.observable();
-    app.fn[key] = main_functions(app, viewModel, vm_config);
-    viewModel._selectedMode(app.fn.main.noneMode());
-    // Behaviours
-    viewModel._goToAttribute = function (attribute) {
-        viewModel._chosenAttribute(attribute);
-        app.fn.main.updateSelectedMode();
-        app.fn.main.setDoc(attribute);
-        if (!_.find(
-                viewModel._activeAttributes(),
-                function (active) {
-                    return equalAttributes(active,attribute);
-                }
-        )) { // TODO: do not update viewmodel, instead update sharedoc.
-            viewModel._activeAttributes.push(attribute);
+    var snapshot = getDocSnapshot(app, vmName);
+
+    var viewModel = app.ko.mapping.fromJS(snapshot, mapping);
+
+    viewModel._newAttribute = app.ko.observable();
+    viewModel._selectedMode = app.ko.observable();
+    app.fn[vmName] = main_functions(app, vmName);
+
+    var noneAceMode = null; /* does not get invalidated */
+    viewModel._noneMode = function () {
+        if (!this.noneAceMode) {
+            this.noneAceMode = _.find(viewModel._availableModes(),
+                    function (mode) {
+                        return mode.ace() == 'none';
+                    });
         }
+        return this.noneAceMode;
     };
+
+    viewModel._selectedMode(viewModel._noneMode());
+
+    viewModel._chosenAttribute = app.ko.observable();
 
     viewModel._isChosenAttribute = function (attribute) {
         var active = viewModel._chosenAttribute();
@@ -561,9 +512,71 @@ function initViewModel_main(app, key, doc, vm_config) {
         return equalAttributes(active,attribute);
     };
 
-    viewModel._activeAttributes = ko.observableArray();
+    viewModel._getModeForAttribute = function (attribute) {
+        if (!attribute) {
+            return viewModel._noneMode();
+        }
+        var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
+        var docMode = (attributeDoc && attributeDoc.mode);
+        if (!docMode) {
+            return viewModel._noneMode();
+        }
+        var mode = _.find(viewModel._availableModes(),
+                function (mode) {
+                    return docMode == mode.ace();
+                });
+        if (mode) {
+            app.debug && console.log('getModeForAttribute', mode);
+            return mode;
+        } else {
+            return viewModel._noneMode();
+        }
+    };
 
-    /*
+    viewModel._getExtensionForAttribute = function (attribute) {
+        var mode = viewModel._getModeForAttribute(attribute);
+        if (mode && mode.ace() == 'markdown') {
+            return '.md';
+        } else {
+            return '.html';
+        }
+    };
+
+    viewModel._getModeForChosenAttribute = function () {
+        var attribute = viewModel._chosenAttribute();
+        app.debug && console.log('getModeForChosenAttribute._chosenAttribute', attribute);
+        return viewModel._getModeForAttribute(attribute)
+    };
+
+
+    viewModel._updateSelectedMode = function () {
+        var selectedMode = viewModel._getModeForChosenAttribute();
+        app.debug && console.log('updateSelectedMode.getModeForChosenAttribute', selectedMode);
+        if (selectedMode) {
+            app.debug && console.log('setSelectedMode:', selectedMode.ace());
+            viewModel._selectedMode(selectedMode);
+        }
+    };
+
+    viewModel._activeAttributes = app.ko.observableArray();
+
+    viewModel._goToAttribute = function (attribute) {
+        viewModel._chosenAttribute(attribute);
+        viewModel._updateSelectedMode();
+        app.fn.main.setDoc(attribute, function (err) {
+            if (!_.find(
+                    viewModel._activeAttributes(),
+                    function (active) {
+                        return equalAttributes(active,attribute);
+                    }
+            )) { // TODO: do not update viewmodel, instead update sharedoc.
+                viewModel._activeAttributes.push(attribute);
+            }
+        });
+    };
+
+
+    /* TODO: move to projects viewModel
     viewModel._newAttribute.subscribe(function (newValue) {
         if (newValue) {
             app.doc.main.submitOp({
@@ -580,14 +593,14 @@ function initViewModel_main(app, key, doc, vm_config) {
     viewModel._previewAttribute = function () {
         var attribute = viewModel._chosenAttribute();
         if (attribute) {
-            var ext = app.fn.main.getExtensionForAttribute(attribute);
+            var ext = viewModel._getExtensionForAttribute(attribute);
             var url = '/page' + getAttributeUrl(attribute) + ext + '#!watch';
             open_in_new_tab(url);
         }
 
     };
 
-    viewModel._getMode = ko.computed(function () {
+    viewModel._getMode = app.ko.computed(function () {
         var attribute = viewModel._chosenAttribute();
         if (!attribute) return attribute;
 
@@ -604,7 +617,7 @@ function initViewModel_main(app, key, doc, vm_config) {
                 console.error('// fires during ko.mapping.fromJS');
             }
             if (newValue && !app.state.vm.updating[docId]) {
-                debug && console.log('_selectedMode, newValue', newValue.ace());
+                app.debug && console.log('_selectedMode, newValue', newValue.ace());
                 app.fn.main.setMode(attribute, newValue.ace());
             }
         }
@@ -614,21 +627,26 @@ function initViewModel_main(app, key, doc, vm_config) {
         console.log('closing ', attribute);
     };
 
-    debug && console.log('mainViewModel', viewModel);
+    app.debug && console.log('mainViewModel', viewModel);
+
     return viewModel;
 }
 
-function updateViewModel_main(app, viewModel, key, doc, vm_config) {
-    var snapshot = doc.snapshot;
+function updateViewModel_main(app, vmName) {
+    var vm_config = getViewModelConfig(app, vmName);
+    var mapping = vm_config.mapping;
+    var snapshot = getDocSnapshot(app, vmName);
+    var viewModel = getViewModel(app, vmName);
+
     addComputed(snapshot);
-    debug && console.log('updating main viewModel', snapshot, viewModel, vm_config);
-    ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
+    app.debug && console.log('updating main viewModel', snapshot, viewModel, vm_config);
+    app.ko.mapping.fromJS(snapshot, mapping, viewModel);
     viewModel._newAttribute("");
-    debug && console.log('updated main viewModel', viewModel);
+    app.debug && console.log('updated main viewModel', viewModel);
 }
 
 function post_updateViewModel_main(app, viewModel, key, doc, vm_config) {
-    debug && console.log('post_update main viewModel', viewModel);
+    app.debug && console.log('post_update main viewModel', viewModel);
     app.fn.main.updateSelectedMode();
 }
 
@@ -654,18 +672,7 @@ function traverse(current, field, property, depth, pos) {
     return 0;
 }
 
-
-function initViewModel_default(app, key, doc, vm_config) {
-    var mapping = vm_config.mapping;
-    var snapshot = doc.snapshot;
-    debug && console.log('init', key, 'viewModel', snapshot, vm_config);
-    var viewModel = ko.mapping.fromJS(snapshot, mapping);
-    debug && console.log('init', key, 'viewModel', viewModel);
-    return viewModel;
-
-}
-
-function user_functions(app, viewModel, vm_config) {
+function user_functions(app) {
     var cursorPositions = {};
 
     return {
@@ -701,9 +708,9 @@ function user_functions(app, viewModel, vm_config) {
                     od: current,
                     oi: position
                 });
-                debug && console.log('storeCurrentPosition ops', ops);
+                app.debug && console.log('storeCurrentPosition ops', ops);
                 doc.submitOp(ops, function (err) {
-                    debug && console.log('set position', position, err);
+                    app.debug && console.log('set position', position, err);
                 });
             });
         },
@@ -728,30 +735,32 @@ function user_functions(app, viewModel, vm_config) {
     }
 }
 
-function initViewModel_user(app, key, doc, vm_config) {
+function initViewModel_user(app, vmName) {
+    var vm_config = getViewModelConfig(app, vmName);
     var mapping = vm_config.mapping;
-    var snapshot = doc.snapshot;
-    debug && console.log('init', key, 'viewModel', snapshot, vm_config);
-    var viewModel = ko.mapping.fromJS(snapshot, mapping);
-    debug && console.log('init', key, 'viewModel', viewModel);
+    var snapshot = getDocSnapshot(app, vmName);
+
+    app.debug && console.log('init', vmName, 'viewModel', snapshot, vm_config);
+    var viewModel = app.ko.mapping.fromJS(snapshot, mapping);
+    app.debug && console.log('init', vmName, 'viewModel', viewModel);
     if (!viewModel.name) {
-        viewModel.name = ko.observable('guest');
+        viewModel.name = app.ko.observable('guest');
     }
     viewModel.name.subscribe(function (newValue) {
         console.log('change to new user', newValue);
         if (newValue != 'guest') {
             var location = {
-                collection: app.config.snapshot[key].collection,
+                collection: getConfigDocSnapshot()[vmName].collection,
                 name: newValue
             };
-            loadLocation(location, 'json', function (err, key_doc) {
-                app.doc[key] = key_doc;
-                updateViewModel(app, app.vm, key, key_doc, vm_config);
-                key_doc.on('change', onDocChange(app, app.vm, key, key_doc, vm_config));
-            })
+            loadRawDoc(app, location, function (err, user_doc) {
+                setDoc(app, vmName, user_doc);
+                updateViewModel(app, app.vm, vmName, user_doc, vm_config);
+                user_doc.on('change', onDocChange(app, vmName, user_doc, vm_config));
+            });
         }
     });
-    app.fn[key] = user_functions(app, viewModel, vm_config)
+    app.fn[vmName] = user_functions(app);
     return viewModel;
 }
 
@@ -807,6 +816,7 @@ function setDoc(app, docId, doc) {
     }
     app.doc[docId] = doc;
 }
+
 function getDoc(app, docId){
     return app && app.doc && app.doc[docId];
 }
@@ -815,23 +825,24 @@ function getDocSnapshot(app, docId){
     return getDoc(app, docId) && app.doc[docId].snapshot;
 }
 
-function initViewModel_projects(app, key, doc, vm_config) {
+function initViewModel_projects(app, vmName) {
+    var vm_config = getViewModelConfig(app, vmName);
     var mapping = vm_config.mapping;
-    var snapshot = doc.snapshot;
-    debug && console.log('init', key, 'viewModel', snapshot, vm_config);
-    var viewModel = ko.mapping.fromJS(snapshot, mapping);
-    debug && console.log('init', key, 'viewModel', viewModel);
+    var snapshot = getDocSnapshot(app, vmName);
+    app.debug && console.log('init', vmName, 'viewModel', snapshot, vm_config);
+    var viewModel = app.ko.mapping.fromJS(snapshot, mapping);
+    app.debug && console.log('init', vmName, 'viewModel', viewModel);
     // TODO: grab current project from user.
-    viewModel._selectedProject = ko.observable();
+    viewModel._selectedProject = app.ko.observable();
     viewModel._selectedProject.subscribe(function (project) {
         _.forEach(project.docs(), function (loc, index) {
             var docId = keyFromLocation(loc);
             if (getDoc(app, docId)) {
                 var docSnapshot = getDocSnapshot(app, docId);
                 var attributes = getAttributeDocNames(docSnapshot, loc);
-                project.docs()[index]._attributeDocNames = ko.observableArray(attributes);
+                project.docs()[index]._attributeDocNames = app.ko.observableArray(attributes);
             } else {
-                project.docs()[index]._attributeDocNames = ko.observableArray();
+                project.docs()[index]._attributeDocNames = app.ko.observableArray();
             }
         })
     });
@@ -840,7 +851,7 @@ function initViewModel_projects(app, key, doc, vm_config) {
         return function (data, event) {
             var docId = keyFromLocation(loc);
             if (!getDoc(app,docId)) {
-                loadLocation(loc, 'json', function (err, key_doc) {
+                loadLocation(app, loc, 'json', function (err, key_doc) {
                     setDoc(app, docId, key_doc);
                     function onChange() {
                         var docSnapshot = getDocSnapshot(app, docId);
@@ -858,13 +869,16 @@ function initViewModel_projects(app, key, doc, vm_config) {
     };
 
     viewModel._openAttribute = function (data) {
-        debug && console.log('_openAttribute data', data);
-        app.vm.main._goToAttribute(data);
+        app.debug && console.log('_openAttribute data', data);
+        var vmMain = getViewModel(app,'main');
+        vmMain && vmMain._goToAttribute(data);
     };
 
     viewModel._isActiveAttribute = function (attribute) {
+        var vmMain = getViewModel(app,'main');
+        if (!vmMain) return false;
         return _.find(
-                app.vm.main._activeAttributes(),
+                vmMain._activeAttributes(),
                 function (active) {
                     return equalAttributes(active, attribute);
                 }
@@ -874,22 +888,11 @@ function initViewModel_projects(app, key, doc, vm_config) {
     return viewModel;
 }
 
-function initViewModel(app, viewModels, key, doc, vm_config) {
-    debug && console.log('initViewModel', viewModels, key, doc, vm_config);
-    var viewModelMethod = initViewModel_default;
-    var methodName = 'initViewModel_' + key;
-    if (this.hasOwnProperty(methodName)) {
-        viewModelMethod = this[methodName];
-    }
-    app.state.vm.updating[key] = true;
-    viewModels[key] = viewModelMethod(app, key, doc, vm_config);
-    app.state.vm.updating[key] = false;
-}
-
-function initViewModel_navigation(app, key, doc, vm_config) {
-    debug && console.log('initViewModel_navigation');
+function initViewModel_navigation(app, vmName) {
+    app.debug && console.log('initViewModel_navigation');
+    var vm_config = getViewModelConfig(app, vmName);
     var mapping = vm_config.mapping;
-    var snapshot = doc.snapshot;
+    var snapshot = getDocSnapshot(app, vmName);
     var viewModel = ko.mapping.fromJS(snapshot, mapping);
 
     viewModel._getDepth = function (field) {
@@ -912,26 +915,29 @@ function initViewModel_navigation(app, key, doc, vm_config) {
     return viewModel;
 }
 
-function defaultUpdateViewModel(app, viewModel, key, doc, vm_config) {
-    var snapshot = doc.snapshot;
-    debug && console.log('updating', key, 'viewModel', snapshot, viewModel, vm_config);
-    ko.mapping.fromJS(snapshot, vm_config.mapping, viewModel);
-    debug && console.log('updated', key, 'viewModel', viewModel);
+function defaultUpdateViewModel(app, vmName) {
+    var vm_config = getViewModelConfig(app, vmName);
+    var mapping = vm_config.mapping;
+    var snapshot = getDocSnapshot(app, vmName);
+    var viewModel = getViewModel(app, vmName);
+    app.debug && console.log('updating', vmName, 'viewModel', snapshot, viewModel, vm_config);
+    app.ko.mapping.fromJS(snapshot, mapping, viewModel);
+    app.debug && console.log('updated', vmName, 'viewModel', viewModel);
 }
 
-function updateViewModel(app, viewModels, key, doc, vm_config) {
+function updateViewModel(app, vmName) {
     var viewModelMethod = defaultUpdateViewModel;
-    var methodName = 'updateViewModel_' + key;
+    var methodName = 'updateViewModel_' + vmName;
     if (this.hasOwnProperty(methodName)) {
         viewModelMethod = this[methodName];
     }
-    app.state.vm.updating[key] = true;
-    viewModelMethod(app, viewModels[key], key, doc, vm_config);
-    app.state.vm.updating[key] = false;
+    app.state.vm.updating[vmName] = true;
+    viewModelMethod(app, vmName);
+    app.state.vm.updating[vmName] = false;
 }
 
 function defaultPostUpdateViewModel(app, viewModel, key, doc, vm_config) {
-    debug && console.log('post_updating', key, 'viewModel', viewModel, vm_config);
+    app.debug && console.log('post_updating', key, 'viewModel', viewModel, vm_config);
 }
 
 function post_updateViewModel(app, viewModels, key, doc, vm_config) {
@@ -943,30 +949,61 @@ function post_updateViewModel(app, viewModels, key, doc, vm_config) {
     viewModelMethod(app, viewModels[key], key, doc, vm_config);
 }
 
-function onDocChange(app, viewModels, key, doc, vm_config) {
+function setViewModel(app, vmName, vm) {
+    app.vm[vmName] = vm;
+}
+
+function initViewModel_default(app, vmName) {
+    var vm_config = getViewModelConfig(app, vmName);
+    var mapping = vm_config.mapping;
+    var snapshot = getDocSnapshot(app, vmName);
+    app.debug && console.log('init', vmName, 'viewModel', snapshot, vm_config);
+    var viewModel = app.ko.mapping.fromJS(snapshot, mapping);
+    app.debug && console.log('init', vmName, 'viewModel', viewModel);
+    return viewModel;
+}
+
+function initViewModel(app, vmName) {
+    app.debug && console.log('initViewModel', vmName);
+    var viewModelMethod = initViewModel_default;
+    var methodName = 'initViewModel_' + vmName;
+    if (this.hasOwnProperty(methodName)) {
+        viewModelMethod = this[methodName];
+    }
+    app.state.vm.updating[vmName] = true;
+    setViewModel(app, vmName, viewModelMethod(app, vmName));
+    app.state.vm.updating[vmName] = false;
+}
+
+function getViewModel(app, vmName) {
+    return app.vm && app.vm[vmName];
+}
+
+function onDocChange(app, vmName) {
     return function onChange() {
-        debug && console.log(key, ' viewModel changed!! running:', app.state.running);
+        app.debug && console.log(vmName, ' viewModel changed!! running:', app.state.running);
         if (app.state.running) {
-            debug && console.log(key, ' viewModel changed!! updating', vm_config);
-            if (viewModels[key]) {
-                updateViewModel(app, viewModels, key, doc, vm_config);
-                post_updateViewModel(app, viewModels, key, doc, vm_config);
+            app.debug && console.log(vmName, ' viewModel changed!! updating');
+            if (getViewModel(app, vmName)) {
+                updateViewModel(app, vmName);
+                post_updateViewModel(app, vmName);
             } else {
                 console.error('HUH!!');
-                initViewModel(app, viewModels, key, doc, vm_config);
+                initViewModel(app, vmName);
             }
         }
     }
 }
 
-function initializeViewModel(app, doc, key, viewModels, vm_config) {
-    initViewModel(app, viewModels, key, doc, vm_config);
-    doc.on('change', onDocChange(app, viewModels, key, doc, vm_config));
+function initializeViewModel(app, vmName) {
+    initViewModel(app, vmName);
+    var module_doc = getDoc(app, vmName);
+    module_doc.on('change', onDocChange(app, vmName));
 }
 
-function loadLocation(loc, type, callback) {
+function loadLocation(app, loc, type, callback) {
     var doc_key = keyFromLocation(loc);
-    debug && console.log('opening location', doc_key);
+    app.debug && console.log('opening location', doc_key);
     return sharejs.open(type + ':' + doc_key, type, function (err, doc) {
         if (err) {
             console.error('error loadLocation', doc_key, err, doc);
@@ -976,13 +1013,13 @@ function loadLocation(loc, type, callback) {
             console.error('event error loadLocation', doc_key, err, doc.state, doc);
         });
         doc.on('closed', function (err, data) {
-            debug && console.log('doc', doc, 'closing', err, 'data', data);
+            app.debug && console.log('doc', doc, 'closing', err, 'data', data);
         });
-        debug && console.log('opened location', doc_key, doc, doc.state, doc.version);
+        app.debug && console.log('opened location', doc_key, doc, doc.state, doc.version);
         if (doc.snapshot == null) {
-            debug && console.log('wait for first change', doc_key, doc.version);
+            app.debug && console.log('wait for first change', doc_key, doc.version);
             return doc.once('change', function onceChange() {
-                debug && console.log('received first change', doc_key, doc.snapshot);
+                app.debug && console.log('received first change', doc_key, doc.snapshot);
                 callback(null, doc);
             });
         } else {
@@ -991,25 +1028,26 @@ function loadLocation(loc, type, callback) {
     });
 }
 
-function getCurrentUser() {
+function getCurrentUser(app) {
     return '';
     // maybe pull from cookie?
     //    return 'aiko';
 }
 
-function loadConfigKey(key, loc, viewModels, vm_config, callback) {
-    debug && console.log('loadConfigKey', key, loc);
-    if (key == 'user') {
-        var user = getCurrentUser();
+function loadConfigModule(app, loc, appModule, callback) {
+    app.debug && console.log('loadConfigModule', appModule, loc);
+    if (appModule == 'user') {
+        var user = getCurrentUser(app);
         if (user) {
             loc.name = user;
-            debug && console.log('loadConfig user', locn);
-            loadLocation(loc, 'json', callback);
+            app.debug && console.log('loadConfig user', loc);
+            loadRawDoc(app, loc, callback);
         } else {
+            // dummy user doc
             callback(null, {
                 snapshot: {},
                 on: function (event, handler) {
-                    console.log('blank config', key, 'event', event, 'handler', handler);
+                    console.log('blank config', appModule, 'event', event, 'handler', handler);
                 },
                 submitOp: function (ops, callback) {
                     return callback(null);
@@ -1024,67 +1062,112 @@ function loadConfigKey(key, loc, viewModels, vm_config, callback) {
             })
         }
     } else {
-        loadLocation(loc, 'json', callback);
+        loadRawDoc(app, loc, callback);
     }
 }
 
-function handleConfigKey(app, key, snapshot, viewModels, callback) {
-    debug && console.log('handleConfigKey app', app);
-    if (!app.hasOwnProperty(key)) {
-        var location = snapshot[key];
-        var vm_config = snapshot.viewModel && snapshot.viewModel[key];
-        return loadConfigKey(key, location, viewModels, vm_config, function handleLoadedKey(err, key_doc) {
+function getViewModelConfig(app, appModule) {
+    var config_snapshot = getConfigDocSnapshot(app);
+    return config_snapshot && config_snapshot.viewModel && config_snapshot.viewModel[appModule]
+}
+
+function handleConfigModule(app, appModule, callback) {
+    app.debug && console.log('handleConfigModule app', app);
+    var config_snapshot = getConfigDocSnapshot(app);
+    if (!app.hasOwnProperty(appModule)) {
+        var loc = config_snapshot[appModule];
+        return loadConfigModule(app, loc, appModule, function handleLoadedConfigModule(err, module_doc) {
             if (err) {
-                console.error('Error loading key', key, err);
-                debug && console.log('- handleConfigKey', key);
+                console.error('Error loading key', appModule, err);
+                app.debug && console.log('- handleConfigKey', appModule);
                 return callback(err);
             } else {
-                app.doc[key] = key_doc;
-                if (vm_config && !app.state.vm.bound.hasOwnProperty(key)) {
-                    initializeViewModel(app, key_doc, key, viewModels, vm_config);
+                setDoc(app, appModule, module_doc);
+                var vm_config = getViewModelConfig(app, appModule);
+                if (vm_config && !app.state.vm.bound.hasOwnProperty(appModule)) {
+                    initializeViewModel(app, appModule);
                 }
             }
-            debug && console.log('- handleConfigKey', key);
+            app.debug && console.log('- handleConfigKey', appModule);
             return callback();
         });
     } else {
-        debug && console.log('- handleConfigKey', key);
+        app.debug && console.log('- handleConfigKey', appModule);
         return callback();
     }
 }
 
-function initializeConfig(doc, app, viewModels, callback) {
-    var snapshot = doc.snapshot;
-    return async.each(_.keys(snapshot), function handleConfigKeys(key, iterator_callback) {
-        debug && console.log('+ handleConfigKey', key);
-        if (snapshot[key].hasOwnProperty('collection')) {
-            return handleConfigKey(app, key, snapshot, viewModels, iterator_callback);
+function moduleIsLoadable( module) {
+    return module.hasOwnProperty('collection');
+}
+function initializeConfig(app, callback) {
+    var config_snapshot = getConfigDocSnapshot(app);
+    return app.async.each(_.keys(config_snapshot), function handleConfigModules(module, iterator_callback) {
+        app.debug && console.log('+ handleConfigModules', module);
+        if (moduleIsLoadable(config_snapshot[module])) {
+            return handleConfigModule(app, module, iterator_callback);
         } else {
             return iterator_callback();
         }
     }, callback);
 }
 
-function loadConfig(app, loc, viewModels, callback) {
-    loadLocation(loc, 'json', function handleConfig(err, doc) {
+function setConfigDoc(app, doc) {
+    app.config = doc;
+}
+
+function getConfigDoc(app){
+    return app && app.config;
+}
+
+function getConfigDocSnapshot(app){
+    return getConfigDoc(app) && app.config.snapshot;
+}
+
+function loadRawDoc(app, loc, callback) {
+    loadLocation(app, loc, 'json', callback);
+}
+
+function loadConfig(app, config_loc, callback) {
+    loadRawDoc(app, config_loc, function handleConfig(err, doc) {
         if (err) {
             console.error('error loadConfig', loc, err);
             return callback(err);
         }
-        app['config'] = doc;
-        initializeConfig(doc, app, viewModels, callback);
+        setConfigDoc(app, doc);
+        initializeConfig(app, callback);
         return doc.on('change', function handleConfigChange() {
-            debug && console.log('Config changed!!');
-            initializeConfig(doc, app, viewModels, callback);
+            app.debug && console.log('Config changed!!');
+            initializeConfig(app, callback);
         });
     });
 }
 
-var config_location = {
-    collection: "app",
-    name: "config"
-};
+
+function bindViewModels(app) {
+    var config_snapshot = getConfigDocSnapshot(app);
+    _.forEach(_.keys(app.vm), function (module) {
+        if (module in app.state.vm.bound) {
+            app.debug && console.log('bindViewModels bindings already applied for', module);
+        } else {
+            var viewModel = app.vm[module];
+            var viewModelConfig = config_snapshot.viewModel[module];
+            var elementId = viewModelConfig.elementId;
+            var element = app.document.getElementById(elementId);
+            app.debug && console.log('bindViewModels applyBindings', module, viewModel, viewModelConfig, elementId);
+            app.ko.applyBindings(viewModel, element);
+            app.state.vm.bound[module] = elementId;
+        }
+    });
+    app.debug && console.log('Viewmodels bound', 'ok');
+}
+
 var app = {
+    debug: false,
+    ko: ko,
+    async: async,
+    ace: ace,
+    document: document,
     state: {
         running: false,
         vm: {
@@ -1097,31 +1180,19 @@ var app = {
     vm: {}
 };
 
-function initKnockout() {
+var config_location = {
+    collection: "app",
+    name: "config"
+};
+
+function initKnockout(app) {
     /* http://www.knockmeout.net/2012/05/quick-tip-skip-binding.html */
-    ko.bindingHandlers.stopBinding = {
+    app.ko.bindingHandlers.stopBinding = {
         init: function () {
             return { controlsDescendantBindings: true };
         }
     };
-    ko.virtualElements.allowedBindings.stopBinding = true;
-}
-
-function bindViewModels(app) {
-    _.forEach(_.keys(app.vm), function (key) {
-        if (key in app.state.vm.bound) {
-            debug && console.log('bindViewModels bindings already applied for', key);
-        } else {
-            var viewModel = app.vm[key];
-            var viewModelConfig = app.config.snapshot.viewModel[key];
-            var elementId = viewModelConfig.elementId;
-            var element = document.getElementById(elementId);
-            debug && console.log('bindViewModels applyBindings', key, viewModel, viewModelConfig, elementId);
-            ko.applyBindings(viewModel, element);
-            app.state.vm.bound[key] = elementId;
-        }
-    });
-    debug && console.log('Viewmodels bound', 'ok');
+    app.ko.virtualElements.allowedBindings.stopBinding = true;
 }
 
 function configLoaded(err) {
@@ -1131,13 +1202,15 @@ function configLoaded(err) {
     console.log(app, 'Loaded', err || 'ok');
 
     if (app.state.running == false) {
-        initKnockout();
+        initKnockout(app);
     }
     bindViewModels(app);
     app.state.running = true;
+
+    console.log(app, 'Running', 'ok');
 }
 
-loadConfig(app, config_location, app.vm, configLoaded);
+loadConfig(app, config_location, configLoaded);
 
 </script>
 <!-- @@_end_import__app_main_behaviour -->
