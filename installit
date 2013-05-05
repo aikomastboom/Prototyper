@@ -7,39 +7,47 @@ set -e
 current_dir=$(cd $(dirname $0) && pwd)
 cd ${current_dir}
 
+unamestr=`uname`
+if [[ "$unamestr" == 'Linux' ]]; then
+   SED='sed -i_orig '
+   CURL='wget '
+elif [[ "$unamestr" == 'Darwin' ]]; then
+    SED='sed -i _orig'
+    CURL='curl -O '
+fi
 
 # patch ShareJS client
 if [ ! -f ./node_modules/share/webclient/share.js_orig ]; then
-    sed  -e s/removeListener/removeEventListener/g -i _orig ./node_modules/share/webclient/ace.js
-    sed  -e s/removeListener/removeEventListener/g -i _orig ./node_modules/share/webclient/share.js
-    sed  -e s/removeListener/removeEventListener/g -i _orig ./node_modules/share/webclient/share-ace.js
-    sed  -e s/removeListener/removeEventListener/g -i _orig ./node_modules/share/webclient/share.uncompressed.js
+    ${SED} -e s/removeListener/removeEventListener/g  ./node_modules/share/webclient/ace.js
+    ${SED} -e s/removeListener/removeEventListener/g  ./node_modules/share/webclient/share.js
+    ${SED} -e s/removeListener/removeEventListener/g  ./node_modules/share/webclient/share-ace.js
+    ${SED} -e s/removeListener/removeEventListener/g  ./node_modules/share/webclient/share.uncompressed.js
 fi
 # Knockout
 mkdir -p ./public/lib/knockout
 cd ./public/lib/knockout
 if [ ! -f ./knockout-min.js ]; then
-  curl -O https://cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js
+  ${CURL} https://cdnjs.cloudflare.com/ajax/libs/knockout/2.2.1/knockout-min.js
 fi
 
 if [ ! -f ./knockout-2.2.1.debug.js ]; then
-  curl -O http://knockoutjs.com/downloads/knockout-2.2.1.debug.js
+  ${CURL} http://knockoutjs.com/downloads/knockout-2.2.1.debug.js
 fi
 
 if [ ! -f ./knockout.mapping-latest.js ]; then
-  curl -O https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js
+  ${CURL} https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.js
 fi
 
 if [ ! -f ./knockout.mapping-latest.debug.js ]; then
-  curl -O https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js
+  ${CURL} https://raw.github.com/SteveSanderson/knockout.mapping/master/build/output/knockout.mapping-latest.debug.js
 fi
 
 if [ ! -f ./knockout-bootstrap.min.js ]; then
-  curl -O https://raw.github.com/billpull/knockout-bootstrap/master/build/knockout-bootstrap.min.js
+  ${CURL} https://raw.github.com/billpull/knockout-bootstrap/master/build/knockout-bootstrap.min.js
 fi
 
 if [ ! -f ./knockout.validation.min.js ]; then
-  curl -O http://cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js
+  ${CURL} http://cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js
 
 fi
 cd ${current_dir}
@@ -48,10 +56,10 @@ cd ${current_dir}
 mkdir -p ./public/lib/bootstrap
 cd ./public/lib/bootstrap
 if [ ! -f ./bootstrap-combined.min.css ]; then
-  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css
+  ${CURL} http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css
 fi
 if [ ! -f ./bootstrap-min.js ]; then
-  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js
+  ${CURL} http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js
 fi
 cd ${current_dir}
 
@@ -59,10 +67,10 @@ cd ${current_dir}
 mkdir -p ./public/lib/img
 cd ./public/lib/img
 if [ ! -f ./glyphicons-halflings.png ]; then
-  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings.png
+  ${CURL} http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings.png
 fi
 if [ ! -f ./glyphicons-halflings-white.png ]; then
-  curl -O http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings-white.png
+  ${CURL} http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings-white.png
 fi
 cd ${current_dir}
 
@@ -70,7 +78,7 @@ cd ${current_dir}
 mkdir -p ./public/lib/jquery
 cd ./public/lib/jquery
 if [ ! -f ./jquery.min.js ]; then
-  curl -O http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js
+  ${CURL} http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js
 fi
 cd ${current_dir}
 
@@ -78,7 +86,7 @@ cd ${current_dir}
 mkdir -p ./public/lib/sockjs
 cd ./public/lib/sockjs
 if [ ! -f ./sockjs-0.3.min.js ]; then
-  curl -O http://cdn.sockjs.org/sockjs-0.3.min.js
+  ${CURL} http://cdn.sockjs.org/sockjs-0.3.min.js
 fi
 cd ${current_dir}
 
@@ -86,7 +94,7 @@ cd ${current_dir}
 mkdir -p ./public/lib/underscore
 cd ./public/lib/underscore
 if [ ! -f ./underscore-min.js ]; then
-  curl -O http://underscorejs.org/underscore-min.js
+  ${CURL} http://underscorejs.org/underscore-min.js
 fi
 cd ${current_dir}
 
@@ -94,7 +102,7 @@ cd ${current_dir}
 mkdir -p ./public/lib/modernizr
 cd ./public/lib/modernizr
 if [ ! -f ./modernizr.min.js ]; then
-  curl -O http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js
+  ${CURL} http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js
 fi
 cd ${current_dir}
 
@@ -102,7 +110,7 @@ cd ${current_dir}
 mkdir -p ./public/lib/font-awesome
 cd ./public/lib/font-awesome
 if [ ! -f ./font-awesome.css ]; then
-  curl -O http://netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css
+  ${CURL} http://netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css
 fi
 cd ${current_dir}
 
@@ -110,6 +118,6 @@ cd ${current_dir}
 mkdir -p ./public/lib/lessjs
 cd ./public/lib/lessjs
 if [ ! -f ./less-1.3.3.min.js ]; then
-  curl -O https://raw.github.com/cloudhead/less.js/master/dist/less-1.3.3.min.js
+  ${CURL} https://raw.github.com/cloudhead/less.js/master/dist/less-1.3.3.min.js
 fi
 cd ${current_dir}
