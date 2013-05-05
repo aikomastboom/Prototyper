@@ -10,7 +10,7 @@ var config = {
 	debug: process.env.DEBUG || false,
 	port: 8000,
 	mongo: {
-		server: "mongodb://silo01.local:27017/Prototyper",
+		server: "mongodb://localhost:27017/Prototyper",
 		options: {
 			db: {
 				native_parser: true,
