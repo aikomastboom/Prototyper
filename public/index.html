@@ -600,7 +600,7 @@ function initViewModel_main(app, vmName) {
         var attribute = viewModel._chosenAttribute();
         if (attribute) {
             var ext = viewModel._getExtensionForAttribute(attribute);
-            var url = '/page' + getAttributeUrl(attribute) + ext + '#!watch';
+            var url = '/page/' + getAttributeUrl(attribute) + ext + '#!watch';
             open_in_new_tab(url);
         }
 
