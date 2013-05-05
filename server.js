@@ -7,7 +7,7 @@ process.title = "Prototyper";
 
 var config = {
 	errors: true,
-	debug: false,
+	debug: process.env.DEBUG || false,
 	port: 8000,
 	mongo: {
 		server: "mongodb://silo01.local:27017/Prototyper",

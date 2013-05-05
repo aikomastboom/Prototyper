@@ -147,7 +147,7 @@ module.exports = function (db, shareModel, config) {
 	function updateData(collection, data, callback) {
 		if (updating) {
 			//noinspection JSUnresolvedFunction
-			setImmediate(function rescheduling() {
+			return setImmediate(function rescheduling() {
 				config.debug && console.log('Updating, rescheduling');
 				return updateData(collection, data, callback);
 			});

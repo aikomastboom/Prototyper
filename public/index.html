@@ -276,7 +276,9 @@ function main_functions(app, vmName) {
     var vm_config = getViewModelConfig(app, vmName);
     var editor = null;
 
-    if (!app.state.editor || (app.state.editor.editorId |= vm_config.editorId)) {
+    if (app.state.editor && app.state.editor[vm_config.editorId]) {
+        editor = app.state.editor[vm_config.editorId];
+    } else {
         var aceInstance = app.ace.edit(vm_config.editorId || "editor");
         editor = {
             editorId: vm_config.editorId,
@@ -284,10 +286,14 @@ function main_functions(app, vmName) {
             session: aceInstance.getSession(),
             doc: null
         };
+        if (!app.state.editor) {
+            app.state.editor = {};
+        }
+        app.state.editor[vm_config.editorId] = editor;
+
         aceInstance.setReadOnly(true);
-    } else {
-        editor = app.state.editor;
     }
+
     return {
         setMode: function (attribute, mode) {
             app.debug && console.log('setmode', attribute.attribute, mode);
@@ -308,8 +314,9 @@ function main_functions(app, vmName) {
                 if (currentMode != mode) {
                     app.debug && console.log('mode differs', attribute, currentMode, mode);
                     function doInsert(mode) {
-                        return mode && mode !='none';
+                        return mode && mode != 'none';
                     }
+
                     replaceAttributeDocKey(app, attribute, 'mode', mode, doInsert, function (err, result) {
                         app.debug && console.log('err', err, 'result', result);
                     });
@@ -323,36 +330,33 @@ function main_functions(app, vmName) {
             var attributeDoc = getAttributeFromDocSnapshot(app, attribute);
             var mode = (attributeDoc && attributeDoc.mode) || 'none';
             app.debug && console.log('setDoc attribute, mode', attribute.title, mode);
+
             this.setMode(attribute, mode);
-            //document.title = attribute;
 
             if (editor.doc != null) {
                 app.debug && console.log('current cursor position', editor.ace.getCursorPosition());
-                app.fn.user.storeCurrentPosition(editor.doc.name, editor.ace.getCursorPosition());
+                callFunction(app, 'user').storeCurrentPosition(editor.doc.name, editor.ace.getCursorPosition());
                 editor.doc.close();
                 editor.doc.detach_ace();
             }
             loadAttributeTextDoc(app, attribute, function (error, newDoc) {
                 if (error) {
                     editor.ace.setReadOnly(true);
-                    callback && callback(error);
+                    console.error(error);
+                    return callback && callback(error);
                 }
                 newDoc.on('error', function (err) {
                     editor.ace.setReadOnly(true);
-                    callback && callback(err);
+                    return callback && callback(err);
                 });
 
                 editor.doc = newDoc;
 
-                if (error) {
-                    console.error(error);
-                    return;
-                }
                 //noinspection JSUnresolvedFunction
                 editor.doc.attach_ace(editor.ace);
                 //noinspection JSUnresolvedFunction
 
-                var moveTo = app.fn.user.getCurrentPosition(editor.doc.name);
+                var moveTo = callFunction(app, 'user').getCurrentPosition(editor.doc.name);
                 if (!(moveTo && moveTo.row && moveTo.column)) {
                     moveTo = {
                         row: 0,
@@ -366,7 +370,7 @@ function main_functions(app, vmName) {
                 editor.ace.setReadOnly(false);
 
                 editor.ace.focus(); //To focus the ace editor
-                callback && callback(null);
+                return callback && callback(null);
             });
         }
     }
@@ -417,12 +421,12 @@ function getDocId(attribute) {
             && (attribute.collection + ':' + attribute.name);
 }
 
-function getAttributeDoc(app,attribute) {
+function getAttributeDoc(app, attribute) {
     var docId = getDocId(attribute);
     return docId && app.doc[docId];
 }
 
-function getAttributeFromDocSnapshot(app,attribute) {
+function getAttributeFromDocSnapshot(app, attribute) {
     var doc = getAttributeDoc(app, attribute);
     return doc && doc.snapshot && doc.snapshot[attribute.attribute];
 }
@@ -432,17 +436,17 @@ function getAttributeUrl(attribute) {
 }
 
 function replaceAttributeDocKey(app, attribute, key, value, doInsert, callback) {
-var op = [];
+    var op = [];
     var attributeDoc = getAttributeDoc(app, attribute);
     if (attributeDoc && attributeDoc[key]) {
-    app.debug && console.log('// remove', key);
-    op.push({
-        p: [attribute.attribute, key],
-        od: attributeDoc[key]
-    });
+        app.debug && console.log('// remove', key);
+        op.push({
+            p: [attribute.attribute, key],
+            od: attributeDoc[key]
+        });
     }
     if (typeof doInsert == 'function' && doInsert(value) || doInsert) {
-    app.debug && console.log('//insert', key);
+        app.debug && console.log('//insert', key);
         op.push({
             p: [attribute.attribute, key],
             oi: value
@@ -450,14 +454,14 @@ var op = [];
     }
     attributeDoc.submitOp(op, function (err, result) {
         app.debug && console.log('err', err, 'result', result);
-        return callback && callback(err,result);
-});
+        return callback && callback(err, result);
+    });
 }
 
 function loadAttributeTextDoc(app, attribute, callback) {
     loadLocation(app, getAttributeLocation(attribute), 'text', function (err, doc) {
         if (err) {
-            console.error('error loading attribute doc',err)
+            console.error('error loading attribute doc', err)
             return callback && callback(err);
         }
         return callback && callback(err, doc);
@@ -487,9 +491,9 @@ function initViewModel_main(app, vmName) {
 
     viewModel._newAttribute = app.ko.observable();
     viewModel._selectedMode = app.ko.observable();
-    app.fn[vmName] = main_functions(app, vmName);
 
-    var noneAceMode = null; /* does not get invalidated */
+    var noneAceMode = null;
+    /* does not get invalidated */
     viewModel._noneMode = function () {
         if (!this.noneAceMode) {
             this.noneAceMode = _.find(viewModel._availableModes(),
@@ -509,7 +513,7 @@ function initViewModel_main(app, vmName) {
         if (!active || !attribute) {
             return false;
         }
-        return equalAttributes(active,attribute);
+        return equalAttributes(active, attribute);
     };
 
     viewModel._getModeForAttribute = function (attribute) {
@@ -557,38 +561,40 @@ function initViewModel_main(app, vmName) {
             viewModel._selectedMode(selectedMode);
         }
     };
+    var activeAttribute = callFunction(app, 'user').getActiveAttributes();
 
-    viewModel._activeAttributes = app.ko.observableArray();
+    viewModel._activeAttributes = app.ko.observableArray(activeAttribute);
 
     viewModel._goToAttribute = function (attribute) {
         viewModel._chosenAttribute(attribute);
         viewModel._updateSelectedMode();
-        app.fn.main.setDoc(attribute, function (err) {
+        callFunction(app, 'main').setDoc(attribute, function (err) {
             if (!_.find(
                     viewModel._activeAttributes(),
                     function (active) {
-                        return equalAttributes(active,attribute);
+                        return equalAttributes(active, attribute);
                     }
             )) { // TODO: do not update viewmodel, instead update sharedoc.
-                viewModel._activeAttributes.push(attribute);
+                callFunction(app, 'user').addActiveAttribute(attribute);
+                //viewModel._activeAttributes.push(attribute);
             }
         });
     };
 
 
     /* TODO: move to projects viewModel
-    viewModel._newAttribute.subscribe(function (newValue) {
-        if (newValue) {
-            app.doc.main.submitOp({
-                p: [newValue],
-                oi: {}
-            }, function (err, result) {
-                //viewModel._newAttribute("");
-            });
-            viewModel._goToAttribute(newValue);
-        }
-    });
-    */
+     viewModel._newAttribute.subscribe(function (newValue) {
+     if (newValue) {
+     app.doc.main.submitOp({
+     p: [newValue],
+     oi: {}
+     }, function (err, result) {
+     //viewModel._newAttribute("");
+     });
+     viewModel._goToAttribute(newValue);
+     }
+     });
+     */
 
     viewModel._previewAttribute = function () {
         var attribute = viewModel._chosenAttribute();
@@ -618,7 +624,7 @@ function initViewModel_main(app, vmName) {
             }
             if (newValue && !app.state.vm.updating[docId]) {
                 app.debug && console.log('_selectedMode, newValue', newValue.ace());
-                app.fn.main.setMode(attribute, newValue.ace());
+                callFunction(app, 'main').setMode(attribute, newValue.ace());
             }
         }
     });
@@ -673,11 +679,11 @@ function traverse(current, field, property, depth, pos) {
     return 0;
 }
 
-function user_functions(app) {
+function user_functions(app, vmName) {
     var cursorPositions = {};
 
     return {
-        ensurePath: function (doc, path, callback) {
+        ensurePath: function (doc, path, lastIsList, callback) {
             var ops = [];
             var sub_doc = doc.snapshot;
             var current = {};
@@ -687,12 +693,20 @@ function user_functions(app) {
                     sub_doc = check;
                     current = check;
                 } else {
-                    ops.push({
-                        p: path.slice(0, x + 1),
-                        oi: {}
-                    });
-                    sub_doc = {};
-                    current = null;
+                    if (((x + 1) == path.length) && lastIsList) {
+                        ops.push({
+                            p: path.slice(0, x + 1),
+                            oi: []
+                        });
+                        current = [];
+                    } else {
+                        ops.push({
+                            p: path.slice(0, x + 1),
+                            oi: {}
+                        });
+                        sub_doc = {};
+                        current = null;
+                    }
                 }
             }
             return callback(null, ops, current);
@@ -701,27 +715,27 @@ function user_functions(app) {
         storeCurrentPosition: function (name, position) {
             cursorPositions[name] = position;
 
-            var doc = app.doc.user;
+            var user_doc = getDoc(app, 'user');
             var path = ['positions', name];
-            this.ensurePath(doc, path, function (err, ops, current) {
+            this.ensurePath(user_doc, path, false, function (err, ops, current) {
                 ops.push({
                     p: path,
                     od: current,
                     oi: position
                 });
                 app.debug && console.log('storeCurrentPosition ops', ops);
-                doc.submitOp(ops, function (err) {
+                user_doc.submitOp(ops, function (err) {
                     app.debug && console.log('set position', position, err);
                 });
             });
         },
 
         getCurrentPosition: function (name) {
-            var position_doc = app.doc.user.at(['positions', name]);
+            var position_doc = getDoc(app, 'user').at(['positions', name]);
             var position = null;
             try {
                 position = position_doc.get();
-            }catch (e) {
+            } catch (e) {
                 // ignore 'bad path' error
             }
             if (!position) {
@@ -730,11 +744,58 @@ function user_functions(app) {
             return position
         },
 
-        addActiveAttribute: function (attribute) {
-            var path = ['active', getAttributeId(attribute)];
+        addActiveAttribute: function (attribute, callback) {
+            var path = ['active'];
+            var user_doc = getDoc(app, 'user');
+            this.ensurePath(user_doc, path, true, function (err, ops, current) {
+                if (!_.find(
+                        current,
+                        function (active) {
+                            return equalAttributes(active, attribute);
+                        }
+                )) { // new
+                    path.push(current.length); // add at end of the list
+                    ops.push({
+                        p: path,
+                        li: normalizeLocation(attribute)
+                    });
+                    app.debug && console.log('addActiveAttribute ops', ops);
+                    return user_doc.submitOp(ops, function (err) {
+                        app.debug && console.log('set position', position, err);
+                        return callback && callback(err);
+                    });
+
+                } else {
+                    return callback && callback(null);
+                }
+            });
+        },
+
+        getActiveAttributes: function () {
+            var active_list = getDoc(app, 'user').at(['active']);
+            var attributes = null;
+            try {
+                attributes = active_list.get();
+            } catch (e) {
+                // ignore 'bad path' error
+            }
+            if (!attributes) {
+                attributes = [];
+            }
+            return attributes
+
         }
     }
 }
+
+function post_updateViewModel_user(app, vmName) {
+    app.debug && console.log('post_update main viewModel', vmName);
+    var main_viewModel = getViewModel(app, 'main');
+    main_viewModel._activeAttributes(
+            callFunction(app, 'user').getActiveAttributes()
+    );
+}
+
 
 function initViewModel_user(app, vmName) {
     var vm_config = getViewModelConfig(app, vmName);
@@ -751,17 +812,17 @@ function initViewModel_user(app, vmName) {
         console.log('change to new user', newValue);
         if (newValue != 'guest') {
             var location = {
-                collection: getConfigDocSnapshot()[vmName].collection,
+                collection: getConfigDocSnapshot(app)[vmName].collection,
                 name: newValue
             };
             loadRawDoc(app, location, function (err, user_doc) {
                 setDoc(app, vmName, user_doc);
-                updateViewModel(app, app.vm, vmName, user_doc, vm_config);
-                user_doc.on('change', onDocChange(app, vmName, user_doc, vm_config));
+                updateViewModel(app, vmName);
+                post_updateViewModel(app, vmName);
+                user_doc.on('change', onDocChange(app, vmName));
             });
         }
     });
-    app.fn[vmName] = user_functions(app);
     return viewModel;
 }
 
@@ -818,11 +879,11 @@ function setDoc(app, docId, doc) {
     app.doc[docId] = doc;
 }
 
-function getDoc(app, docId){
+function getDoc(app, docId) {
     return app && app.doc && app.doc[docId];
 }
 
-function getDocSnapshot(app, docId){
+function getDocSnapshot(app, docId) {
     return getDoc(app, docId) && app.doc[docId].snapshot;
 }
 
@@ -851,7 +912,7 @@ function initViewModel_projects(app, vmName) {
     viewModel._loadAttributes = function (index, loc) {
         return function (data, event) {
             var docId = keyFromLocation(loc);
-            if (!getDoc(app,docId)) {
+            if (!getDoc(app, docId)) {
                 loadLocation(app, loc, 'json', function (err, key_doc) {
                     setDoc(app, docId, key_doc);
                     function onChange() {
@@ -871,12 +932,12 @@ function initViewModel_projects(app, vmName) {
 
     viewModel._openAttribute = function (data) {
         app.debug && console.log('_openAttribute data', data);
-        var vmMain = getViewModel(app,'main');
+        var vmMain = getViewModel(app, 'main');
         vmMain && vmMain._goToAttribute(data);
     };
 
     viewModel._isActiveAttribute = function (attribute) {
-        var vmMain = getViewModel(app,'main');
+        var vmMain = getViewModel(app, 'main');
         if (!vmMain) return false;
         return _.find(
                 vmMain._activeAttributes(),
@@ -916,7 +977,7 @@ function initViewModel_navigation(app, vmName) {
     return viewModel;
 }
 
-function defaultUpdateViewModel(app, vmName) {
+function updateViewModel_default(app, vmName) {
     var vm_config = getViewModelConfig(app, vmName);
     var mapping = vm_config.mapping;
     var snapshot = getDocSnapshot(app, vmName);
@@ -927,7 +988,7 @@ function defaultUpdateViewModel(app, vmName) {
 }
 
 function updateViewModel(app, vmName) {
-    var viewModelMethod = defaultUpdateViewModel;
+    var viewModelMethod = updateViewModel_default;
     var methodName = 'updateViewModel_' + vmName;
     if (this.hasOwnProperty(methodName)) {
         viewModelMethod = this[methodName];
@@ -937,12 +998,12 @@ function updateViewModel(app, vmName) {
     app.state.vm.updating[vmName] = false;
 }
 
-function defaultPostUpdateViewModel(app, vmName) {
+function post_updateViewModel_default(app, vmName) {
     app.debug && console.log('post_updating', vmName, 'viewModel');
 }
 
 function post_updateViewModel(app, vmName) {
-    var viewModelMethod = defaultPostUpdateViewModel;
+    var viewModelMethod = post_updateViewModel_default;
     var methodName = 'post_updateViewModel_' + vmName;
     if (this.hasOwnProperty(methodName)) {
         viewModelMethod = this[methodName];
@@ -996,7 +1057,18 @@ function onDocChange(app, vmName) {
     }
 }
 
+function callFunction(app, vmName) {
+    return app.fn[vmName];
+}
+
 function initializeViewModel(app, vmName) {
+    app.debug && console.log('initializeViewModel', vmName);
+    // set viewModel functions
+    var methodName = vmName + '_functions';
+    if (this.hasOwnProperty(methodName)) {
+        app.fn[vmName] = this[methodName](app, vmName);
+    }
+
     initViewModel(app, vmName);
     var module_doc = getDoc(app, vmName);
     module_doc.on('change', onDocChange(app, vmName));
@@ -1098,7 +1170,7 @@ function handleConfigModule(app, appModule, callback) {
     }
 }
 
-function moduleIsLoadable( module) {
+function moduleIsLoadable(module) {
     return module.hasOwnProperty('collection');
 }
 function initializeConfig(app, callback) {
@@ -1117,11 +1189,11 @@ function setConfigDoc(app, doc) {
     app.config = doc;
 }
 
-function getConfigDoc(app){
+function getConfigDoc(app) {
     return app && app.config;
 }
 
-function getConfigDocSnapshot(app){
+function getConfigDocSnapshot(app) {
     return getConfigDoc(app) && app.config.snapshot;
 }
 
@@ -1196,11 +1268,7 @@ function initKnockout(app) {
     app.ko.virtualElements.allowedBindings.stopBinding = true;
 }
 
-function configLoaded(err) {
-    if (err) {
-        console.error('Error loading config', err);
-    }
-    console.log(app, 'Loaded', err || 'ok');
+function initializeApp(app) {
 
     if (app.state.running == false) {
         initKnockout(app);
@@ -1211,7 +1279,14 @@ function configLoaded(err) {
     console.log(app, 'Running', 'ok');
 }
 
-loadConfig(app, config_location, configLoaded);
+loadConfig(app, config_location, function configLoaded(err) {
+    if (err) {
+        console.error('Error loading config', err);
+    }
+    console.log(app, 'Loaded', err || 'ok');
+
+    initializeApp(app)
+});
 
 </script>
 <!-- @@_end_import__app_main_behaviour -->

@@ -164,9 +164,10 @@ module.exports = function (app, db, config) {
 				return callback && callback(err);
 			}
 			config.debug && console.log('current', current, 'result', result, 'options', options);
-			if ((!current || !current.name) && result.name) {
+			if ((!current || !current.name) && (result.name || options.name)) {
+				var name = result.name || options.name;
 				var operation = { op: [
-					{ p: ['name'], oi: result.name, od: null }
+					{ p: ['name'], oi: name, od: null }
 				], v: options.operation.v };
 				return model.applyOp(options.documentId, operation, function appliedOp(error, version) {
 					config.debug && console.log('setResult applyOp version', version);
@@ -244,6 +245,7 @@ module.exports = function (app, db, config) {
 			documentId: documentId,
 			type: splitId[0],
 			collection: splitId[1],
+			name: splitId[2],
 			attribute: null,
 			operation: operation,
 			no_share: true // prevent circular updates.
