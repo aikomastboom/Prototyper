@@ -7,13 +7,21 @@ set -e
 current_dir=$(cd $(dirname $0) && pwd)
 cd ${current_dir}
 
-unamestr=`uname`
-if [[ "$unamestr" == 'Linux' ]]; then
+unameStr=`uname`
+if [[ "${unameStr}" == 'Linux' ]]; then
    SED='sed -i_orig '
    CURL='wget '
-elif [[ "$unamestr" == 'Darwin' ]]; then
+elif [[ "${unameStr}" == 'Darwin' ]]; then
     SED='sed -i _orig'
     CURL='curl -O '
+fi
+
+arch=`uname -m`
+if [[ "${arch}" == 'armv6l' ]]; then
+    # ARM support: https://github.com/mongodb/js-bson/issues/37
+    rm -rf ./node_modules/bson/build
+    ${SED} -d s/#define USE_MISALIGNED_MEMORY_ACCESS 1/#define USE_MISALIGNED_MEMORY_ACCESS 0/g ./node_modules/bson/ext/bson.h
+    npm install bson
 fi
 
 # patch ShareJS client
