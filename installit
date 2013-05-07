@@ -20,7 +20,7 @@ arch=`uname -m`
 if [[ "${arch}" == 'armv6l' ]]; then
     # ARM support: https://github.com/mongodb/js-bson/issues/37
     rm -rf ./node_modules/bson/build
-    ${SED} -d s/#define USE_MISALIGNED_MEMORY_ACCESS 1/#define USE_MISALIGNED_MEMORY_ACCESS 0/g ./node_modules/bson/ext/bson.h
+    ${SED} -e s/#define USE_MISALIGNED_MEMORY_ACCESS 1/#define USE_MISALIGNED_MEMORY_ACCESS 0/g ./node_modules/bson/ext/bson.h
     npm install bson
 fi
 
