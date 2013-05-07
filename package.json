@@ -8,6 +8,7 @@
     "share": "~0.6.0",
     "connect": "~2.7.6",
     "express": "~3.2.0",
+    "bson": "~0.1.8",
     "mongodb": "~1.2.14",
     "handlebars": "~1.0.10",
     "underscore": "~1.4.4",
