@@ -20,8 +20,9 @@ arch=`uname -m`
 if [[ "${arch}" == 'armv6l' ]]; then
     # ARM support: https://github.com/mongodb/js-bson/issues/37
     rm -rf ./node_modules/bson/build
-    ${SED} -e s/#define USE_MISALIGNED_MEMORY_ACCESS 1/#define USE_MISALIGNED_MEMORY_ACCESS 0/g ./node_modules/bson/ext/bson.h
-    npm install bson
+    ${SED} -e "s/#define USE_MISALIGNED_MEMORY_ACCESS 1/#define USE_MISALIGNED_MEMORY_ACCESS 0/g" ./node_modules/bson/ext/bson.h
+    head ./node_modules/bson/ext/bson.h | grep USE_MISALIGNED_MEMORY_ACCESS
+    npm rebuild bson
 fi
 
 # patch ShareJS client
