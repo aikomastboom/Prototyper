@@ -6,4 +6,5 @@
 *.swp
 fleet.json
 *.log
-thing
+.fseventsd
+.TemporaryItems
