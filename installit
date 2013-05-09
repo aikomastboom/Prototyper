@@ -16,13 +16,20 @@ elif [[ "${unameStr}" == 'Darwin' ]]; then
     CURL='curl -O '
 fi
 
+set +e
+head ./node_modules/bson/ext/bson.h | grep "#define USE_MISALIGNED_MEMORY_ACCESS 1"
+rebuild_bson=$?
+set -e
+echo rebuild_bson $rebuild_bson
 arch=`uname -m`
-if [[ "${arch}" == 'armv6l' ]]; then
+if [[ "${arch}" == 'armv6l' && "${rebuild_bson}" == 0 ]]; then
     # ARM support: https://github.com/mongodb/js-bson/issues/37
     rm -rf ./node_modules/bson/build
     ${SED} -e "s/#define USE_MISALIGNED_MEMORY_ACCESS 1/#define USE_MISALIGNED_MEMORY_ACCESS 0/g" ./node_modules/bson/ext/bson.h
     head ./node_modules/bson/ext/bson.h | grep USE_MISALIGNED_MEMORY_ACCESS
-    npm rebuild bson
+    # npm does not let itself be called while running, so the following
+    # does not work when this script is called by npm install
+    # npm rebuild bson
 fi
 
 # patch ShareJS client
@@ -130,3 +137,7 @@ if [ ! -f ./less-1.3.3.min.js ]; then
   ${CURL} https://raw.github.com/cloudhead/less.js/master/dist/less-1.3.3.min.js
 fi
 cd ${current_dir}
+
+if [[ "${arch}" == 'armv6l' && ! -d ./node_modules/bson/build ]]; then
+echo "need to rebuild bson: 'npm rebuild bson' before running"
+fi
