@@ -748,6 +748,10 @@ function user_functions(app, vmName) {
             var path = ['active'];
             var user_doc = getDoc(app, 'user');
             this.ensurePath(user_doc, path, true, function (err, ops, current) {
+                if (err) {
+                    console.error('addActiveAttribute.ensurePath', err);
+                    return callback && callback(err);
+                }
                 if (!_.find(
                         current,
                         function (active) {
@@ -761,7 +765,10 @@ function user_functions(app, vmName) {
                     });
                     app.debug && console.log('addActiveAttribute ops', ops);
                     return user_doc.submitOp(ops, function (err) {
-                        app.debug && console.log('set position', position, err);
+                        if (err) {
+                            console.error('user_doc.submitOp', err);
+                            return callback && callback(err);
+                        }
                         return callback && callback(err);
                     });
 
