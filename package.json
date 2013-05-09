@@ -2,6 +2,9 @@
 	"name": "Prototyper",
 	"version": "0.0.1",
 	"main": "server.js",
+	"config" : {
+		"port" : "8000"
+	},
 	"engine": "node 0.10.4",
 	"private": "true",
 	"dependencies": {
@@ -32,6 +35,5 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"install": "./installit",
 		"deploy": "./deployit"
-
 	}
 }

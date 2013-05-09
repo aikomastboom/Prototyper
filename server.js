@@ -8,7 +8,7 @@ process.title = "Prototyper";
 var config = {
 	errors: true,
 	debug: process.env.DEBUG || false,
-	port: 8000,
+	port: process.env.npm_package_config_port || 8000,
 	mongo: {
 		server: "mongodb://localhost:27017/Prototyper",
 		options: {
@@ -72,6 +72,9 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 		return process.exit(1);
 	}
 	var server = addRoutes(app, db, config);
+	server.on('error', function (err) {
+		config.error && console.log('server error',err);
+	});
 	return server.listen(config.port, function handleServerResult(err) {
 		if (err) {
 			app.stop();
