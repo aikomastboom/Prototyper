@@ -20,7 +20,6 @@ set +e
 head ./node_modules/bson/ext/bson.h | grep "#define USE_MISALIGNED_MEMORY_ACCESS 1"
 rebuild_bson=$?
 set -e
-echo rebuild_bson $rebuild_bson
 arch=`uname -m`
 if [[ "${arch}" == 'armv6l' && "${rebuild_bson}" == 0 ]]; then
     # ARM support: https://github.com/mongodb/js-bson/issues/37
@@ -39,6 +38,12 @@ if [ ! -f ./node_modules/share/webclient/share.js_orig ]; then
     ${SED} -e s/removeListener/removeEventListener/g  ./node_modules/share/webclient/share-ace.js
     ${SED} -e s/removeListener/removeEventListener/g  ./node_modules/share/webclient/share.uncompressed.js
 fi
+
+if [[ -d ${HOME}/.prototyper-cache/lib && ! -d ./public/lib ]];then
+    mkdir -p ./public/lib
+    cp -r ${HOME}/.prototyper-cache/lib ./public
+fi
+
 # Knockout
 mkdir -p ./public/lib/knockout
 cd ./public/lib/knockout
@@ -137,6 +142,11 @@ if [ ! -f ./less-1.3.3.min.js ]; then
   ${CURL} https://raw.github.com/cloudhead/less.js/master/dist/less-1.3.3.min.js
 fi
 cd ${current_dir}
+
+if [ ! -d ${HOME}/.prototyper-cache/lib ];then
+    mkdir -p ${HOME}/.prototyper-cache
+    cp -r ./public/lib ${HOME}/.prototyper-cache
+fi
 
 if [[ "${arch}" == 'armv6l' && ! -d ./node_modules/bson/build ]]; then
 echo "need to rebuild bson: 'npm rebuild bson' before running"

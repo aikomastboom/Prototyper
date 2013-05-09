@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+fleet-deploy && fleet-exec -- npm --cache-min=99999 install && fleet-exec npm rebuild bson && fleet-spawn npm start
