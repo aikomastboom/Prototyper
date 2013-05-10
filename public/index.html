@@ -33,6 +33,15 @@
                     "name" : "test1"
                 }
             ]
+        },
+        {
+            "title" : "Test Two",
+            "docs" : [
+                {
+                    "collection" : "tests",
+                    "name" : "test2"
+                }
+            ]
         }
     ]
 }<!-- @@_end_import__app_projects_json --><!-- @@import__app_config_json_ -->{
@@ -196,6 +205,15 @@
                                     click: $root._openAttribute"></a>
                         </li>
                         <!-- /ko -->
+                        <li>
+                            <label>
+                                <div class="input-append">
+                                <input type="text"
+                                       data-bind="value: _newAttribute"/>
+                                    <span class="add-on btn"><i class="icon-plus"></i></span>
+                                </div>
+                            </label>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -224,20 +242,14 @@
                 </li>
                 <!-- ko foreach: _activeAttributes() -->
                 <li data-bind="css: { active: $root._isChosenAttribute($data) }">
-                    <a data-bind="text: $data.attribute, click: $root._goToAttribute"></a>
+                    <a class="nav-pill" href="javascript:;">
+                        <div class="btn-group">
+                        <button class="btn-pill" data-bind="text: $data.attribute, click: $root._goToAttribute"></button>
+                        <button class="close" data-bind="click: $root._closeDoc"><i class="icon-remove-sign"></i></button>
+                        </div>
+                    </a>
                 </li>
                 <!-- /ko -->
-                <!--
-                <li class="pull-right">
-                    <div class="nav navbar-form">
-                        <label>
-                            <i class="icon-plus"></i>
-                            <input type="text" class="span2"
-                                   data-bind="value: _newAttribute"/>
-                        </label>
-                    </div>
-                </li>
-                -->
             </ul>
         </div>
         <div id="editor"></div>
@@ -322,6 +334,10 @@ function main_functions(app, vmName) {
                     });
                 }
             }
+        },
+
+        setReadOnly: function (value) {
+            editor.ace.setReadOnly(value);
         },
 
         setDoc: function (attribute, callback) {
@@ -489,7 +505,6 @@ function initViewModel_main(app, vmName) {
 
     var viewModel = app.ko.mapping.fromJS(snapshot, mapping);
 
-    viewModel._newAttribute = app.ko.observable();
     viewModel._selectedMode = app.ko.observable();
 
     var noneAceMode = null;
@@ -566,6 +581,7 @@ function initViewModel_main(app, vmName) {
     viewModel._activeAttributes = app.ko.observableArray(activeAttribute);
 
     viewModel._goToAttribute = function (attribute) {
+        app.debug && console.log('_goToAttribute',attribute);
         viewModel._chosenAttribute(attribute);
         viewModel._updateSelectedMode();
         callFunction(app, 'main').setDoc(attribute, function (err) {
@@ -581,20 +597,6 @@ function initViewModel_main(app, vmName) {
         });
     };
 
-
-    /* TODO: move to projects viewModel
-     viewModel._newAttribute.subscribe(function (newValue) {
-     if (newValue) {
-     app.doc.main.submitOp({
-     p: [newValue],
-     oi: {}
-     }, function (err, result) {
-     //viewModel._newAttribute("");
-     });
-     viewModel._goToAttribute(newValue);
-     }
-     });
-     */
 
     viewModel._previewAttribute = function () {
         var attribute = viewModel._chosenAttribute();
@@ -631,6 +633,11 @@ function initViewModel_main(app, vmName) {
 
     viewModel._closeDoc = function (attribute) {
         console.log('closing ', attribute);
+        var mainViewModel = getViewModel(app, 'main');
+        if(mainViewModel._isChosenAttribute(attribute)) {
+            callFunction(app, 'main').setReadOnly(true);
+        }
+        callFunction(app, 'user').removeActiveAttribute(attribute);
     };
 
     app.debug && console.log('mainViewModel', viewModel);
@@ -647,7 +654,6 @@ function updateViewModel_main(app, vmName) {
     addComputed(snapshot);
     app.debug && console.log('updating main viewModel', snapshot, viewModel, vm_config);
     app.ko.mapping.fromJS(snapshot, mapping, viewModel);
-    viewModel._newAttribute("");
     app.debug && console.log('updated main viewModel', viewModel);
 }
 
@@ -778,6 +784,42 @@ function user_functions(app, vmName) {
             });
         },
 
+        removeActiveAttribute: function (attribute, callback) {
+            var path = ['active'];
+            var user_doc = getDoc(app, 'user');
+            this.ensurePath(user_doc, path, true, function (err, ops, current) {
+                if (err) {
+                    console.error('removeActiveAttribute.ensurePath', err);
+                    return callback && callback(err);
+                }
+                var currentIndex=null;
+                _.any(current, function(value, index, list) {
+                    if (equalAttributes(value, attribute)) {
+                        currentIndex=index;
+                        return true;
+                    }
+                });
+                if (currentIndex != null){
+                    path.push(currentIndex);
+                    ops.push({
+                        p: path,
+                        ld: normalizeLocation(attribute)
+                    });
+                    app.debug && console.log('removeActiveAttribute ops', ops);
+                    return user_doc.submitOp(ops, function (err) {
+                        if (err) {
+                            console.error('user_doc.submitOp', err);
+                            return callback && callback(err);
+                        }
+                        return callback && callback(err);
+                    });
+
+                } else {
+                    return callback && callback(null);
+                }
+            });
+        },
+
         getActiveAttributes: function () {
             var active_list = getDoc(app, 'user').at(['active']);
             var attributes = null;
@@ -802,7 +844,6 @@ function post_updateViewModel_user(app, vmName) {
             callFunction(app, 'user').getActiveAttributes()
     );
 }
-
 
 function initViewModel_user(app, vmName) {
     var vm_config = getViewModelConfig(app, vmName);
@@ -913,6 +954,31 @@ function initViewModel_projects(app, vmName) {
             } else {
                 project.docs()[index]._attributeDocNames = app.ko.observableArray();
             }
+            project.docs()[index]._newAttribute = app.ko.observable();
+            project.docs()[index]._newAttribute.subscribe(function (newValue, aaaa) {
+                if (newValue) {
+                    var docId = keyFromLocation(loc);
+                    var doc = getDoc(app, docId);
+
+                    doc.submitOp({
+                        p: [newValue],
+                        oi: {}
+                    }, function (err, result) {
+                        project.docs()[index]._newAttribute("");
+                    });
+                    var _loc = normalizeLocation(loc);
+                    var attribute = {
+                        collection: _loc.collection,
+                        name: _loc.name,
+                        attribute: newValue
+                    };
+                    // TODO: a callback would be nice so we can clear the
+                    // _newAttribute box after the document has been written to.
+                    // currently it just wierd in 'guest' mode as you can not
+                    // have any tabs open.
+                    viewModel._openAttribute(attribute);
+                }
+            });
         })
     });
 
@@ -930,7 +996,7 @@ function initViewModel_projects(app, vmName) {
                                 attributes
                         );
                     }
-
+                    key_doc.on('change', onChange);
                     onChange();
                 });
             }

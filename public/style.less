@@ -78,6 +78,60 @@ body {
   float: right;
 }
 
+
+.nav-pills>li>a>div {
+  padding-top: 0px;
+  padding-bottom: 0px;
+}
+
+li.active .btn-pill, li.active .btn-pill[disabled] {
+  background-color: transparent;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  color: #ffffff;
+}
+
+.btn-pill {
+  background-color: transparent;
+  border-color: transparent;
+  background-image: none;
+  cursor: pointer;
+  color: #0088cc;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  padding: 0;
+  border:0;
+}
+
+
+.btn-pill:hover, .btn-pill:focus {
+  color: #005580;
+  text-decoration: underline;
+  background-color: transparent;
+}
+
+.btn-pill[disabled]:hover, .btn-pill[disabled]:focus {
+  color: #333333;
+  text-decoration: none;
+}
+
+.nav-pills>li>a.nav-pill {
+  padding-top: 5px;
+  padding-bottom: 6px;
+}
+
+.nav-pills>li>a {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+
 #editor {
   margin: 0;
   position: absolute;
@@ -89,9 +143,22 @@ body {
 
 #project_tree {
   left: 0;
+  bottom: 0;
   right: @content-divider;
   width: @content-divider;
   margin: 5px;
+}
+
+#project_tree .nav {
+  margin-bottom: 0;
+}
+
+#project_tree .label {
+  margin-bottom: 0;
+}
+
+#project_tree .input-append {
+  margin-bottom: 0;
 }
 
 #project_tree input {
@@ -102,12 +169,17 @@ body {
   width: 140px;
 }
 
+#project_tree input {
+  width: 100px;
+}
+
 #htext a {
   color: #aaf;
   font-weight: bold;
 }
 
 .nav i[class*="icon-"] {
+  margin-top: -4px;
   vertical-align: middle;
 }
 
