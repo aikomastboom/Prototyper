@@ -69,6 +69,14 @@ fi
 
 if [ ! -f ./knockout.validation.min.js ]; then
   ${CURL} http://cdnjs.cloudflare.com/ajax/libs/knockout-validation/1.0.2/knockout.validation.min.js
+fi
+
+if [ ! -f ./knockout-sortable.js ]; then
+  ${CURL} https://raw.github.com/rniemeyer/knockout-sortable/master/build/knockout-sortable.js
+fi
+
+if [ ! -f ./knockout-sortable.min.js ]; then
+  ${CURL} https://raw.github.com/rniemeyer/knockout-sortable/master/build/knockout-sortable.min.js
 
 fi
 cd ${current_dir}
@@ -143,10 +151,10 @@ if [ ! -f ./less-1.3.3.min.js ]; then
 fi
 cd ${current_dir}
 
-if [ ! -d ${HOME}/.prototyper-cache/lib ];then
+if [ ! -d ${HOME}/.prototyper-cache ];then
     mkdir -p ${HOME}/.prototyper-cache
-    cp -r ./public/lib ${HOME}/.prototyper-cache
 fi
+cp -r ./public/lib ${HOME}/.prototyper-cache
 
 if [[ "${arch}" == 'armv6l' && ! -d ./node_modules/bson/build ]]; then
 echo "need to rebuild bson: 'npm rebuild bson' before running"
