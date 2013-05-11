@@ -26,7 +26,8 @@ module.exports = function (config, mongoInstance) {
 				},
 				// there can be only one import_leftovers
 				true
-			),
+			)
+			).then(
 			function onSuccess(leftover) {
 				handleImportMarkers(doc, options, function handleLeftover(err, remainder) {
 					if (err) {

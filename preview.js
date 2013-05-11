@@ -170,7 +170,8 @@ module.exports = function (config, mongoDataInstance) {
 							});
 						});
 						return when.all(
-							promises,
+							promises
+							).then(
 							function onSuccess() {
 								var rendered = null;
 								try {

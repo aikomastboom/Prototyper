@@ -3,7 +3,7 @@
 command -v fleet
 fleet_installed=$?
 if [ ${fleet_installed} == 1 ]; then
-npm install -g http://github.com/aikomastboom/fleet/archive/0.1.8.tar.gz
+npm install -g http://github.com/aikomastboom/fleet/archive/0.1.9.tar.gz
 fi
 
 # deploy new commit

@@ -29,7 +29,8 @@ function replace(text, marker, getReplacement, once) {
 			})
 		});
 		when.all(
-			match_promises,
+				match_promises
+			).then(
 			function onSuccess(results) {
 				deferred.resolve(results);
 			},
@@ -45,7 +46,8 @@ function replace(text, marker, getReplacement, once) {
 
 function handTextManipulation(text, promises, handler, callback) {
 	when.all(
-		promises,
+			promises
+		).then(
 		function onSuccess(all_results) {
 			_.forEach(all_results, function loopResults(results) {
 				_.forEach(results, function handleResult(result) {
