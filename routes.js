@@ -1,5 +1,3 @@
-var ShareJS = require('share');
-var mongoData = require('./mongodata.js');
 var responder = require('./responder.js');
 var preview = require('./preview.js');
 var importer = require('./importer.js');
@@ -7,19 +5,8 @@ var importer = require('./importer.js');
 var path = require('path');
 var fs = require('fs');
 
-module.exports = function (app, db, config) {
+module.exports = function (app, mongoDataInstance, model, config) {
 
-	// share wraps express app with http.Server
-	if (config
-		&& config.share
-		&& config.share.db
-		&& config.share.db.type == 'mongo') {
-		config.share.db.client = db;
-	}
-	var server = ShareJS.server.attach(app, config.share);
-	var model = app.model;
-
-	var mongoDataInstance = mongoData(db, model, config);
 	var route;
 	route = config.api.data + '/:collection/:guid/:attribute.:ext(css|less|js|html)';
 	app.get(route,
@@ -357,5 +344,5 @@ module.exports = function (app, db, config) {
 		});
 	});
 
-	return server;
+	return app;
 };

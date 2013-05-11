@@ -2,6 +2,8 @@ var connect = require('connect');
 var express = require('express');
 var MongoClient = require('mongodb').MongoClient;
 var addRoutes = require('./routes.js');
+var addShare = require('./share.js');
+var mongoData = require('./mongodata.js');
 
 process.title = "Prototyper";
 
@@ -71,7 +73,14 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 		config.errors && console.log('ERR connection to database', err);
 		return process.exit(1);
 	}
-	var server = addRoutes(app, db, config);
+	var share = addShare(app, db, config);
+	var model = share.model;
+	var server = share.server;
+
+	var mongoDataInstance = mongoData(db, model, config);
+
+	app = addRoutes(app, mongoDataInstance, model, config);
+
 	server.on('error', function (err) {
 		config.error && console.log('server error',err);
 	});
