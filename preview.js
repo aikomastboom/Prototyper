@@ -3,9 +3,8 @@ var markdown = require('markdown').markdown;
 var _ = require('underscore');
 var less = require('less');
 var when = require('when');
-var helpers = require('./helpers.js');
 
-module.exports = function (config, mongoDataInstance) {
+module.exports = function (config, mongoDataInstance, helpers, markers) {
 
 	var getPreviewHTML = function (content, options, callback) {
 		config.debug && console.log('getPreviewHTML', content);
@@ -22,12 +21,29 @@ module.exports = function (config, mongoDataInstance) {
 		);
 	};
 
+	var script_tag = markers.script_tag;
+	var script_regexp = markers.script_regexp;
+
+	var style_tag = markers.style_tag;
+	var style_regexp = markers.style_regexp;
+
+	var less_tag = markers.less_tag;
+	var less_regexp = markers.less_regexp;
+
+	var template_tag = markers.template_tag;
+	var template_regexp = markers.template_regexp;
+
+	var markdown_tag = markers.markdown_tag;
+	var markdown_regexp = markers.markdown_regexp;
+
+	var remove_tag = markers.remove_tag;
+	//var remove_regexp = markers.remove_regexp;
+
 	var replaceMarkers = function (html, options) {
 
 		var promises = [];
 
-		var script_tag = 'script__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var script_regexp = new RegExp(helpers.marker_prefix + script_tag + helpers.marker_postfix);
+		// Script tag handling
 		promises.push(
 			helpers.replace(html, script_tag, function handleScriptMarker(result, callback) {
 				var parts = script_regexp.exec(result);
@@ -42,8 +58,7 @@ module.exports = function (config, mongoDataInstance) {
 				});
 			}));
 
-		var style_tag = 'style__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var style_regexp = new RegExp(helpers.marker_prefix + style_tag + helpers.marker_postfix);
+		// Style tag handling
 		promises.push(
 			helpers.replace(html, style_tag, function handleStyleMarker(result, callback) {
 				var parts = style_regexp.exec(result);
@@ -58,8 +73,7 @@ module.exports = function (config, mongoDataInstance) {
 				});
 			}));
 
-		var less_tag = 'less__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var less_regexp = new RegExp(helpers.marker_prefix + less_tag + helpers.marker_postfix);
+		// Less tag handling
 		promises.push(
 			helpers.replace(html, less_tag, function handleStyleMarker(result, callback) {
 				var parts = less_regexp.exec(result);
@@ -74,8 +88,7 @@ module.exports = function (config, mongoDataInstance) {
 				});
 			}));
 
-		var template_tag = 'template__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)__context__([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var template_regexp = new RegExp(helpers.marker_prefix + template_tag + helpers.marker_postfix);
+		// Template tag handling
 		promises.push(
 			helpers.replace(html, template_tag, function handleTemplateMarker(result, callback) {
 				var parts = template_regexp.exec(result);
@@ -170,7 +183,7 @@ module.exports = function (config, mongoDataInstance) {
 							});
 						});
 						return when.all(
-							promises
+								promises
 							).then(
 							function onSuccess() {
 								var rendered = null;
@@ -202,8 +215,7 @@ module.exports = function (config, mongoDataInstance) {
 				});
 			}));
 
-		var markdown_tag = 'markdown__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var markdown_regexp = new RegExp(helpers.marker_prefix + markdown_tag + helpers.marker_postfix);
+		// Markdown tag handling
 		promises.push(
 			helpers.replace(html, markdown_tag, function handleMarkDownMarker(result, callback) {
 				var parts = markdown_regexp.exec(result);
@@ -225,8 +237,7 @@ module.exports = function (config, mongoDataInstance) {
 				});
 			}));
 
-		var remove_tag = 'remove_([\\w\\W]*?)_end_remove';
-		//var remove_regexp = new RegExp(remove_tag);
+		// Remove tag handling
 		promises.push(
 			helpers.replace(html, remove_tag, function handleRemoveMarker(result, callback) {
 				return callback(null, {
@@ -241,7 +252,7 @@ module.exports = function (config, mongoDataInstance) {
 
 	return {
 		getPreviewHTML: getPreviewHTML,
-		_replaceMarkers: replaceMarkers
+			_replaceMarkers: replaceMarkers
 	};
 };
 

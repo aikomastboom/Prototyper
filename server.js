@@ -10,7 +10,8 @@ var mongoData = require('./mongodata.js');
 var preview = require('./preview.js');
 var importer = require('./importer.js');
 var handlers = require('./handlers.js');
-
+var markers = require('./markers.js');
+var helpers = require('./helpers.js');
 
 var config = {
 	errors: true,
@@ -77,6 +78,9 @@ app.use('/lib/async', express.static(config.statics.async_client));
 
 config.debug && console.log('static routes set');
 
+var markerInstance = markers(config);
+var helperInstance = helpers(markerInstance);
+
 MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
 	if (err) {
 		config.errors && console.log('ERR connection to database', err);
@@ -84,7 +88,7 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 	}
 	config.debug && console.log('database connected');
 
-	var share = shareServer(app, db, config);
+	var share = shareServer(config, app, db);
 	var model = share.model;
 	var server = share.server;
 
@@ -96,13 +100,13 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 
 	shareHandlers(config, model, mongoDataInstance);
 
-	config.debug && console.log('sharehandlers attached');
+	config.debug && console.log('shareHandlers attached');
 
-	var previewInstance = preview(config, mongoDataInstance);
+	var previewInstance = preview(config, mongoDataInstance, helperInstance, markerInstance);
 
 	config.debug && console.log('previews initialized');
 
-	var importerInstance = importer(config, mongoDataInstance);
+	var importerInstance = importer(config, mongoDataInstance, helperInstance, markerInstance);
 
 	config.debug && console.log('importer initialized');
 
@@ -110,7 +114,7 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 
 	config.debug && console.log('handlers initialized');
 
-	app = addRoutes(app, handlerInstance, config);
+	app = addRoutes(app, handlerInstance, markers, config);
 
 	config.debug && console.log('routes added');
 

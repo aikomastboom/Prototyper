@@ -3,7 +3,7 @@ var responder = require('./responder.js');
 var path = require('path');
 var fs = require('fs');
 
-module.exports = function (app, handlers, config) {
+module.exports = function (app, handlers, markers, config) {
 
 	var route;
 	route = config.api.data + '/:collection/:guid/:attribute.:ext(css|less|js|html)';
@@ -83,10 +83,7 @@ module.exports = function (app, handlers, config) {
 			};
 			if (options.ext == 'md') {
 				var attribute_parts = options.query.name.split('.');
-				var markdownTag = 'markdown__' + options.collection + '_' + attribute_parts[0] + '_' + attribute_parts[1];
-				//var markdownDocument=helpers.marker_prefix + markdownTag + helpers.marker_postfix;
-				// TODO: remove hardcoded marker
-				var markdownDocument = '<!-- @@' + markdownTag + ' -->';
+				var markdownDocument = markers.createTag('markdown',options.collection, attribute_parts[0],  attribute_parts[1]);
 				return handlers.getPreviewHTML(markdownDocument, { req: options.req },
 					responder(options, res, next)
 				);

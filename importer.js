@@ -1,14 +1,13 @@
 var when = require('when');
 var _ = require('underscore');
-var helpers = require('./helpers.js');
 var path = require('path');
 var fs = require('fs');
 
 
-module.exports = function (config, mongoInstance) {
+module.exports = function (config, mongoInstance, helpers, markers) {
 
-	var import_leftovers_tag = 'import_leftovers__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-	var import_leftovers_regexp = new RegExp(helpers.marker_prefix + import_leftovers_tag + helpers.marker_postfix);
+	var import_leftovers_tag = markers.import_leftovers_tag;
+	var import_leftovers_regexp = markers.import_leftovers_regexp;
 
 	var importer = function (doc, options, cb) {
 		when.any(
@@ -80,11 +79,15 @@ module.exports = function (config, mongoInstance) {
 		);
 	};
 
+	var import_tag = markers.import_tag;
+	var import_regexp = markers.import_regexp;
+	var import_strip_regexp = markers.import_strip_regexp;
+
+	var import_file_tag = markers.import_file_tag;
+	var import_file_regexp = markers.import_file_regexp;
+
 	var replaceMarkers = function (doc, options) {
 		var promises = [];
-		var import_tag = 'import__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([\\w\\W]*)_end_import__\\1_\\2_\\3';
-		var import_regexp = new RegExp(helpers.marker_prefix + import_tag + helpers.marker_postfix);
-		var import_strip_regexp = new RegExp(helpers.marker_postfix + '([\\w\\W]*)' + helpers.marker_prefix);
 
 		promises.push(
 			helpers.replace(doc, import_tag, function handleImportMarker(result, callback) {
@@ -107,8 +110,6 @@ module.exports = function (config, mongoInstance) {
 			})
 		);
 
-		var import_file_tag = 'import_file__([A-Za-z0-9.\/]+)__into__([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)';
-		var import_file_regexp = new RegExp(helpers.marker_prefix + import_file_tag + helpers.marker_postfix);
 
 		promises.push(
 			helpers.replace(doc, import_file_tag, function handleImportFileMarker(result, callback) {
