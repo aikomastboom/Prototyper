@@ -21,7 +21,9 @@
 		"async": "~0.2.8"
 	},
 	"devDependencies": {
-		"sockjs": "~0.3.5"
+		"sockjs": "~0.3.7",
+		"chai": "*",
+		"mocha": "*"
 	},
 	"repository": "git://github.com/aikomastboom/Prototyper.git",
 	"author": "Aiko Mastboom",
@@ -32,7 +34,7 @@
 	},
 	"description": "README.md",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
+		"test": "mocha",
 		"install": "./installit",
 		"deploy": "./deployit"
 	}
