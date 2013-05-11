@@ -9,11 +9,17 @@ fi
 # deploy new commit
 fleet-deploy && fleet-exec -- npm --cache-min=99999 install && fleet-exec -- npm rebuild bson
 
+#DEPLOYED_COMMIT=${git log -n 1 | head -n 1 | cut -d " " -f 2}
 # stop running one
+#RUNNING_COMMIT=${fleet-ps | grep -B 2 "${PROTOTYPER}/" | grep commit | cut -d "/" -f 2}
 # stop running
 PROTOTYPER=$(basename $PWD)
 fleet-ps | grep -B 2 "${PROTOTYPER}/" | grep pid | cut -d " " -f 2 | xargs fleet-stop
 
+# cleanup other commits
+fleet-exec -- bash -c "ls .. | grep ${PROTOTYPER} | grep -v \$(basename \${PWD}) | xargs -Icommit rm -rf ../commit"
+
 # start new
 # not using 'npm start' because when killed it doesn't kill its children (server.js)
 fleet-spawn node ./server.js
+
