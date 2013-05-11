@@ -2,7 +2,7 @@ var ObjectID = require('mongodb').ObjectID;
 var _ = require('underscore');
 
 
-module.exports = function (db, shareModel, config) {
+module.exports = function (config, db, shareModel) {
 
 	/*
 	 options:

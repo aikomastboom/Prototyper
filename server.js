@@ -1,11 +1,16 @@
+process.title = "Prototyper";
+
 var connect = require('connect');
 var express = require('express');
 var MongoClient = require('mongodb').MongoClient;
 var addRoutes = require('./routes.js');
-var addShare = require('./share.js');
+var shareServer = require('./share.js');
+var shareHandlers = require('./shareHandlers.js');
 var mongoData = require('./mongodata.js');
+var preview = require('./preview.js');
+var importer = require('./importer.js');
+var handlers = require('./handlers.js');
 
-process.title = "Prototyper";
 
 var config = {
 	errors: true,
@@ -52,10 +57,12 @@ var config = {
 	}
 };
 
+config.debug && console.log('config loaded');
+
 var app = express();
 config.debug && app.use(connect.logger());
 if (!process.env.NODE_ENV) {
-	app.get('/favicon.ico', function (req, res, next) {
+	app.get('/favicon.ico', function (req, res) {
 		res.sendfile(config.statics.dev_favicon_path);
 	});
 }
@@ -68,26 +75,52 @@ app.use('/lib/ace', express.static(config.statics.ace_client));
 //noinspection JSUnresolvedFunction
 app.use('/lib/async', express.static(config.statics.async_client));
 
+config.debug && console.log('static routes set');
+
 MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
 	if (err) {
 		config.errors && console.log('ERR connection to database', err);
 		return process.exit(1);
 	}
-	var share = addShare(app, db, config);
+	config.debug && console.log('database connected');
+
+	var share = shareServer(app, db, config);
 	var model = share.model;
 	var server = share.server;
 
-	var mongoDataInstance = mongoData(db, model, config);
+	config.debug && console.log('share attached');
 
-	app = addRoutes(app, mongoDataInstance, model, config);
+	var mongoDataInstance = mongoData(config, db, model);
+
+	config.debug && console.log('mongodata initialized');
+
+	shareHandlers(config, model, mongoDataInstance);
+
+	config.debug && console.log('sharehandlers attached');
+
+	var previewInstance = preview(config, mongoDataInstance);
+
+	config.debug && console.log('previews initialized');
+
+	var importerInstance = importer(config, mongoDataInstance);
+
+	config.debug && console.log('importer initialized');
+
+	var handlerInstance = handlers(mongoDataInstance, previewInstance, importerInstance);
+
+	config.debug && console.log('handlers initialized');
+
+	app = addRoutes(app, handlerInstance, config);
+
+	config.debug && console.log('routes added');
 
 	server.on('error', function (err) {
-		config.error && console.log('server error',err);
+		config.error && console.log('server error', err);
 	});
 	return server.listen(config.port, function handleServerResult(err) {
 		if (err) {
 			app.stop();
-			console.log('Server error', err);
+			console.error('Server error', err);
 			return process.exit(1);
 		}
 		config.debug && console.log('routes', app.routes);
