@@ -57,6 +57,7 @@ var config = {
 		dev_favicon_path: __dirname + '/public/favicon_dev.ico',
 		importer_path: __dirname + '/public',
 		public_path: __dirname + '/public',
+		doc_path: __dirname + '/doc',
 		markdown_client: __dirname + '/node_modules/markdown/lib',
 		ace_client: __dirname + '/node_modules/share/examples/lib/ace',
 		async_client: __dirname + '/node_modules/async/lib'
@@ -76,6 +77,8 @@ if (!process.env.NODE_ENV) {
 }
 //noinspection JSUnresolvedFunction
 app.use(express.static(config.statics.public_path));
+//noinspection JSUnresolvedFunction
+app.use('/doc',express.static(config.statics.doc_path));
 //noinspection JSUnresolvedFunction
 app.use('/lib/markdown', express.static(config.statics.markdown_client));
 //noinspection JSUnresolvedFunction

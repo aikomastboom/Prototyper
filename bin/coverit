@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 current_dir=$(cd $(dirname $0) && pwd)
-base_dir=${current_dir}
+base_dir=${current_dir}/..
 cd ${base_dir}
 
 if [ ! -x ./opt/node-jscoverage/jscoverage ]; then
@@ -18,5 +18,6 @@ if [ ! -x ./node_modules/.bin/mocha ]; then
 fi
 
 ./opt/node-jscoverage/jscoverage lib lib-cov
-PROTOTYPER_COV=1 ./node_modules/.bin/mocha -R html-cov > public/coverage.html
+PROTOTYPER_COV=1 ./node_modules/.bin/mocha -R html-cov > ./doc/coverage.html
 rm -rf lib-cov
+echo "coverage.html generated in doc/coverage.html"

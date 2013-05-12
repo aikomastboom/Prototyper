@@ -5,7 +5,7 @@
 set -e
 
 current_dir=$(cd $(dirname $0) && pwd)
-base_dir=${current_dir}
+base_dir=${current_dir}/..
 cd ${base_dir}
 
 
@@ -81,7 +81,7 @@ if [ ! -f ./knockout-sortable.min.js ]; then
   ${CURL} https://raw.github.com/rniemeyer/knockout-sortable/master/build/knockout-sortable.min.js
 
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # Bootstrap
 mkdir -p ./public/lib/bootstrap
@@ -92,7 +92,7 @@ fi
 if [ ! -f ./bootstrap.min.js ]; then
   ${CURL} http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/js/bootstrap.min.js
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings.png
 mkdir -p ./public/lib/img
@@ -103,7 +103,7 @@ fi
 if [ ! -f ./glyphicons-halflings-white.png ]; then
   ${CURL} http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/img/glyphicons-halflings-white.png
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # JQuery
 mkdir -p ./public/lib/jquery
@@ -111,7 +111,7 @@ cd ./public/lib/jquery
 if [ ! -f ./jquery.min.js ]; then
   ${CURL} http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # SockJS
 mkdir -p ./public/lib/sockjs
@@ -119,7 +119,7 @@ cd ./public/lib/sockjs
 if [ ! -f ./sockjs-0.3.min.js ]; then
   ${CURL} http://cdn.sockjs.org/sockjs-0.3.min.js
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # Underscore
 mkdir -p ./public/lib/underscore
@@ -127,7 +127,7 @@ cd ./public/lib/underscore
 if [ ! -f ./underscore-min.js ]; then
   ${CURL} http://underscorejs.org/underscore-min.js
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # //cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js
 mkdir -p ./public/lib/modernizr
@@ -135,7 +135,7 @@ cd ./public/lib/modernizr
 if [ ! -f ./modernizr.min.js ]; then
   ${CURL} http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # //netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css
 mkdir -p ./public/lib/font-awesome
@@ -143,7 +143,7 @@ cd ./public/lib/font-awesome
 if [ ! -f ./font-awesome.css ]; then
   ${CURL} http://netdna.bootstrapcdn.com/font-awesome/3.0.2/css/font-awesome.css
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 # https://raw.github.com/cloudhead/less.js/master/dist/less-1.3.3.min.js
 mkdir -p ./public/lib/lessjs
@@ -151,7 +151,7 @@ cd ./public/lib/lessjs
 if [ ! -f ./less-1.3.3.min.js ]; then
   ${CURL} https://raw.github.com/cloudhead/less.js/master/dist/less-1.3.3.min.js
 fi
-cd ${current_dir}
+cd ${base_dir}
 
 if [ ! -d ${HOME}/.prototyper-cache ];then
     mkdir -p ${HOME}/.prototyper-cache

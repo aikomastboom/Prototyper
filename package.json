@@ -38,9 +38,9 @@
 	"description": "README.md",
 	"scripts": {
 		"test": "./node_modules/.bin/mocha",
-		"install": "./installit",
-		"deploy": "./deployit",
-		"doc":"./docit",
-		"cov": "./coverit"
+		"install": "./bin/installit",
+		"deploy": "./bin/deployit",
+		"doc":"./bin/docit",
+		"cov": "./bin/coverit"
 	}
 }
