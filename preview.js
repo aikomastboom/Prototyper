@@ -252,7 +252,7 @@ module.exports = function (config, mongoDataInstance, helpers, markers) {
 
 	return {
 		getPreviewHTML: getPreviewHTML,
-			_replaceMarkers: replaceMarkers
+		_replaceMarkers: replaceMarkers
 	};
 };
 

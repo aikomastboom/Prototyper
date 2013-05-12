@@ -6,7 +6,7 @@ module.exports = function (markers) {
 	function replace(text, marker, getReplacement, once) {
 		var deferred = when.defer();
 		var regExp = new RegExp(markers.prefix + marker + markers.postfix, 'gmi');
-		var matches = text.match(regExp);
+		var matches = text && text.match && text.match(regExp);
 		if (matches) {
 			if (once) {
 				matches = [matches[0]];
