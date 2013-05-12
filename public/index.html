@@ -660,7 +660,7 @@ function updateViewModel_main(app, vmName) {
 function post_updateViewModel_main(app, vmName) {
     app.debug && console.log('post_update main viewModel', vmName);
     var viewModel = getViewModel(app, vmName);
-    viewModel.updateSelectedMode();
+    viewModel._updateSelectedMode();
 }
 
 /* crazy expensive caching tree traverse */
