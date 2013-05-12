@@ -49,6 +49,7 @@ describe('Helpers', function () {
 				it('should ignore non text input ' + values[i], testText(values[i]));
 			}
 		});
+
 		describe('check getReplacement', function () {
 
 			it('should call getReplacement fail on error', function (done) {
@@ -73,12 +74,11 @@ describe('Helpers', function () {
 				);
 			});
 
-			it('should call getReplacement', function (done) {
+			it('should call getReplacement (once)', function (done) {
 				var marker = '<!-- @@null -->';
 				var text = 'Hello' + marker + 'World' + marker + '!!';
 
 				function getReplacement(result, callback) {
-					console.log('result', result);
 					expect(result).to.be.equal(marker);
 					expect(callback).to.be.a('function');
 					callback(null, {});
@@ -111,10 +111,11 @@ describe('Helpers', function () {
 				var text = 'Hello' + marker + 'World' + marker + '!!';
 
 				function getReplacement(result, callback) {
-					console.log('result', result);
 					expect(result).to.be.equal(marker);
 					expect(callback).to.be.a('function');
-					callback(null, { value: '#'});
+					callback(null, {
+						regExp: new RegExp('What?'),
+						value: '#'});
 
 				}
 				var once = false;
@@ -125,11 +126,12 @@ describe('Helpers', function () {
 						try{
 							expect(result).to.be.instanceof(Array);
 							expect(result).to.have.length(2); // due to 'once' being false
-							for(var i=0; i<result.length; i += 1) {
+							var i;
+							for(i=0; i<result.length; i += 1) {
 								expect(result[i]).to.be.ok;
 								expect(result[i]).to.have.property('replacement','#');
 								expect(result[i]).to.have.property('regExp');
-								expect(result[i].regExp.source).to.equal('<!--\\s*@@null\\s*-->');
+								expect(result[i].regExp.source).to.equal('What?');
 							}
 						}catch(e){
 							// work around 'when eating exceptions'
@@ -142,6 +144,107 @@ describe('Helpers', function () {
 				);
 			});
 
+
+		});
+
+		describe('complex regexp', function () {
+
+			it('should handle variable tags', function (done) {
+				var marker_tag = 'test__([A-Za-z0-9]+)';
+				var marker1 = '<!-- @@test__A -->';
+				var marker2 = '<!-- @@test__B -->';
+				var text = 'Hello' + marker1 + 'World' + marker2 + '!!';
+				var called = 0;
+				function getReplacement(result, callback) {
+					if (called) {
+						expect(result).to.be.equal(marker2);
+					}else {
+						called += 1;
+						expect(result).to.be.equal(marker1);
+					}
+					expect(callback).to.be.a('function');
+					callback(null, {
+						regExp: new RegExp('What?'),
+						value: '#'});
+
+				}
+				var once = false;
+				var promise = helper.replace(text, marker_tag, getReplacement, once);
+				expect(when.isPromise(promise)).to.be.ok;
+				promise.then(
+					function onSuccess(result) {
+						try{
+							expect(result).to.be.instanceof(Array);
+							expect(result).to.have.length(2); // due to 'once' being false
+							var i;
+							for(i=0; i<result.length; i += 1) {
+								expect(result[i]).to.be.ok;
+								expect(result[i]).to.have.property('replacement','#');
+								expect(result[i]).to.have.property('regExp');
+								expect(result[i].regExp.source).to.equal('What?');
+							}
+						}catch(e){
+							// work around 'when eating exceptions'
+							return done(e);
+						}
+						done();
+					}, function onFailure(err) {
+						done(new Error(JSON.stringify(err)));
+					}
+				);
+
+			});
+
+			it('should handle tags in tags', function (done) {
+				var marker_tag = 'test_([A-Za-z0-9]+)__([\\w\\W]*?)__\\1_test';
+				var marker1 = '<!-- @@test_A__ -->';
+				var marker2 = '<!-- @@__A_test -->';
+				var marker3 = '<!-- @@test_B____B_test -->';
+				var text = 'Hello' + marker1 + 'World' + marker2 + '!!' + marker3 +
+							'Greetings' + marker1 + 'Earthlings' + marker3 + '!!' + marker2;
+				var called = 0;
+				function getReplacement(result, callback) {
+					//console.log('result',called,result);
+					if (called === 2) {
+						expect(result).to.be.equal('<!-- @@test_A__ -->Earthlings<!-- @@test_B____B_test -->!!<!-- @@__A_test -->');
+					}else if (called === 1) {
+						expect(result).to.be.equal('<!-- @@test_B____B_test -->');
+					}else {
+						expect(result).to.be.equal('<!-- @@test_A__ -->World<!-- @@__A_test -->');
+					}
+					called += 1;
+					expect(callback).to.be.a('function');
+					callback(null, {
+						regExp: new RegExp('What?'),
+						value: '#'});
+
+				}
+				var once = false;
+				var promise = helper.replace(text, marker_tag, getReplacement, once);
+				expect(when.isPromise(promise)).to.be.ok;
+				promise.then(
+					function onSuccess(result) {
+						try{
+							expect(result).to.be.instanceof(Array);
+							expect(result).to.have.length(3); // due to 'once' being false
+							var i;
+							for(i=0; i<result.length; i += 1) {
+								expect(result[i]).to.be.ok;
+								expect(result[i]).to.have.property('replacement','#');
+								expect(result[i]).to.have.property('regExp');
+								expect(result[i].regExp.source).to.equal('What?');
+							}
+						}catch(e){
+							// work around 'when eating exceptions'
+							return done(e);
+						}
+						done();
+					}, function onFailure(err) {
+						done(new Error(JSON.stringify(err)));
+					}
+				);
+
+			});
 
 		});
 	});
