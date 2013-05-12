@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+current_dir=$(cd $(dirname $0) && pwd)
+base_dir=${current_dir}
+cd ${base_dir}
+
+
+command -v pygmentize
+pygments_installed=$?
+if [ ${pygments_installed} == 1 ]; then
+    easy_install pygments
+fi
+
+if [ ! -x ./node_modules/.bin/groc ]; then
+    npm install groc
+fi
+
+./node_modules/.bin/groc lib/*.js

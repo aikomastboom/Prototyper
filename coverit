@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+current_dir=$(cd $(dirname $0) && pwd)
+base_dir=${current_dir}
+cd ${base_dir}
+
+if [ ! -x ./opt/node-jscoverage/jscoverage ]; then
+    mkdir -p ./opt
+    cd ./opt
+    git clone git://github.com/visionmedia/node-jscoverage.git
+    cd node-jscoverage/
+    ./configure && make
+    cd ${base_dir}
+fi
+
+if [ ! -x ./node_modules/.bin/mocha ]; then
+    npm install mocha
+fi
+
+./opt/node-jscoverage/jscoverage lib lib-cov
+PROTOTYPER_COV=1 ./node_modules/.bin/mocha -R html-cov > public/coverage.html
+rm -rf lib-cov

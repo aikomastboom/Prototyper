@@ -1,4 +1,6 @@
-var helpers = require('../lib/helpers.js');
+var libpath = process.env['PROTOTYPER_COV'] ? '../lib-cov' : '../lib';
+
+var helpers = require(libpath + '/helpers.js');
 var expect = require('chai').expect;
 var when = require('when');
 

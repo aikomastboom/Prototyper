@@ -5,7 +5,9 @@
 set -e
 
 current_dir=$(cd $(dirname $0) && pwd)
-cd ${current_dir}
+base_dir=${current_dir}
+cd ${base_dir}
+
 
 unameStr=`uname`
 if [[ "${unameStr}" == 'Linux' ]]; then

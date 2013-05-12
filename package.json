@@ -25,7 +25,8 @@
 		"sockjs": "~0.3.7",
 		"chai": "*",
 		"mocha": "*",
-		"sinon": "*"
+		"sinon": "*",
+		"groc": "*"
 	},
 	"repository": "git://github.com/aikomastboom/Prototyper.git",
 	"author": "Aiko Mastboom",
@@ -36,8 +37,10 @@
 	},
 	"description": "README.md",
 	"scripts": {
-		"test": "mocha",
+		"test": "./node_modules/.bin/mocha",
 		"install": "./installit",
-		"deploy": "./deployit"
+		"deploy": "./deployit",
+		"doc":"./docit",
+		"cov": "./coverit"
 	}
 }
