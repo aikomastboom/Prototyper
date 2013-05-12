@@ -62,6 +62,8 @@ config.debug && console.log('config loaded');
 
 var app = express();
 config.debug && app.use(connect.logger());
+app.use(express.compress());
+
 if (!process.env.NODE_ENV) {
 	app.get('/favicon.ico', function (req, res) {
 		res.sendfile(config.statics.dev_favicon_path);

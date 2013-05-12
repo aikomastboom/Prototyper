@@ -7,7 +7,7 @@ npm install -g http://github.com/aikomastboom/fleet/archive/0.1.9.tar.gz
 fi
 
 # deploy new commit
-fleet-deploy && fleet-exec -- npm --cache-min=99999 install && fleet-exec -- npm rebuild bson
+fleet-deploy && fleet-exec -- npm --cache-min 99999 install && fleet-exec -- npm rebuild bson
 
 #DEPLOYED_COMMIT=${git log -n 1 | head -n 1 | cut -d " " -f 2}
 # stop running one

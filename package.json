@@ -23,7 +23,8 @@
 	"devDependencies": {
 		"sockjs": "~0.3.7",
 		"chai": "*",
-		"mocha": "*"
+		"mocha": "*",
+		"sinon": "*"
 	},
 	"repository": "git://github.com/aikomastboom/Prototyper.git",
 	"author": "Aiko Mastboom",
