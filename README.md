@@ -1,3 +1,6 @@
+[![build status](https://secure.travis-ci.org/aikomastboom/Prototyper.png)](http://travis-ci.org/aikomastboom/Prototyper)
+
+
 # Getting started.
 
     npm install
