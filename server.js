@@ -1,5 +1,6 @@
 process.title = "Prototyper";
 
+var mime = require('mime');
 var connect = require('connect');
 var express = require('express');
 var MongoClient = require('mongodb').MongoClient;
@@ -12,6 +13,10 @@ var importer = require('./importer.js');
 var handlers = require('./handlers.js');
 var markers = require('./markers.js');
 var helpers = require('./helpers.js');
+
+mime.define({
+	'text/css': ['css','less']
+});
 
 var config = {
 	errors: true,
