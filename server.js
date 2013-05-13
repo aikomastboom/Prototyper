@@ -1,3 +1,4 @@
+"use strict";
 process.title = "Prototyper";
 
 var mime = require('mime');
@@ -19,8 +20,15 @@ mime.define({
 });
 
 var config = {
+	debug: function () {
+		if (process.env.DEBUG) {
+			console.log(JSON.stringify(arguments));
+		}
+	},
+	error: function () {
+		console.error(JSON.stringify(arguments));
+	},
 	errors: true,
-	debug: process.env.DEBUG || false,
 	port: process.env.npm_package_config_port || 8000,
 	mongo: {
 		server: "mongodb://localhost:27017/Prototyper",
@@ -65,7 +73,7 @@ var config = {
 };
 
 if (config.debug) {
-	console.log('config loaded');
+	config.debug('config loaded');
 }
 
 var app = express();
@@ -77,7 +85,6 @@ app.use(express.compress());
 
 if (!process.env.NODE_ENV) {
 	app.get('/favicon.ico', function (req, res) {
-		"use strict";
 		res.sendfile(config.statics.dev_favicon_path, null, null);
 	});
 }
@@ -93,22 +100,21 @@ app.use('/lib/ace', express.static(config.statics.ace_client));
 app.use('/lib/async', express.static(config.statics.async_client));
 
 if (config.debug) {
-	console.log('static routes set');
+	config.debug('static routes set');
 }
 
 var markerInstance = markers(config);
 var helperInstance = helpers(markerInstance);
 
 MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
-	"use strict";
 	if (err) {
-		if (config.errors) {
-			console.error('ERR connection to database', err);
+		if (config.error) {
+			config.error('ERR connection to database', err);
 		}
-		return process.exit(1);
+		return process.exit(3);
 	}
 	if (config.debug) {
-		console.log('database connected');
+		config.debug('database connected');
 	}
 
 	var share = shareServer(config, app, db);
@@ -116,58 +122,68 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 	var server = share.server;
 
 	if (config.debug) {
-		console.log('share attached');
+		config.debug('share attached');
 	}
 
 	var mongoDataInstance = mongoData(config, db, model);
 
 	if (config.debug) {
-		console.log('mongodata initialized');
+		config.debug('mongodata initialized');
 	}
 
 	shareHandlers(config, model, mongoDataInstance);
 
 	if (config.debug) {
-		console.log('shareHandlers attached');
+		config.debug('shareHandlers attached');
 	}
 
 	var previewInstance = preview(config, mongoDataInstance, helperInstance, markerInstance);
 
 	if (config.debug) {
-		console.log('previews initialized');
+		config.debug('previews initialized');
 	}
 
 	var importerInstance = importer(config, mongoDataInstance, helperInstance, markerInstance);
 
 	if (config.debug) {
-		console.log('importer initialized');
+		config.debug('importer initialized');
 	}
 
 	var handlerInstance = handlers(mongoDataInstance, previewInstance, importerInstance);
 
 	if (config.debug) {
-		console.log('handlers initialized');
+		config.debug('handlers initialized');
 	}
 
 	app = addRoutes(app, handlerInstance, markers, config);
 
 	if (config.debug) {
-		console.log('routes added');
+		config.debug('routes added');
+	}
+
+	function exit(code) {
+		db.close();
+		process.exit(code);
 	}
 
 	server.on('error', function (err) {
 		if (config.error) {
-			console.error('server error', err);
+			config.error('Server error', err);
+		}
+		if (err.code && err.code === 'EADDRINUSE') {
+			exit(2);
 		}
 	});
+
 	return server.listen(config.port, function handleServerResult(err) {
 		if (err) {
-			app.stop();
-			console.error('Server error', err);
-			return process.exit(1);
+			if (config.error) {
+				console.error('Server error', err);
+			}
+			return exit(1);
 		}
 		if (config.debug) {
-			console.log('routes', app.routes);
+			config.debug('routes', app.routes);
 		}
 		return console.log('Server running at http://127.0.0.1:', config.port);
 	});

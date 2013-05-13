@@ -10,7 +10,14 @@ var when = require('when');
 
 describe('Helpers', function () {
 	"use strict";
-	var config = { debug: false };
+	var config = {
+		debug: function () {
+			//console.log(arguments);
+		},
+		error: function () {
+			//console.error(arguments);
+		}
+	};
 	var markersInstance = markers(config);
 	var marker_prefix = '<!--\\s*@@';
 	var marker_postfix = '\\s*-->';
