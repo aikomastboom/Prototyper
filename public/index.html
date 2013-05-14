@@ -188,7 +188,7 @@
             <!--<input type="text" autocomplete="off">-->
         <!--</div>-->
         <div class="accordion" id="accordion"
-             data-bind="foreach: _selectedProject().docs()">
+             data-bind="sortable: { data:_selectedProject().docs(), afterMove:$root._moveContent(_selectedProject())}">
             <div class="accordion-group">
                 <a class="nav-pills nav-stacked" data-toggle="collapse"
                    data-parent="#accordion"
@@ -198,23 +198,23 @@
 
                 <div data-bind="attr: { id: 'collapse' +$index() }"
                      class="accordion-body collapse">
-                    <ul class="nav nav-pills nav-stacked">
-                        <!-- ko foreach: _attributeDocNames() -->
-                        <li data-bind="css: { active: $root._isActiveAttribute($data) }">
-                            <a data-bind="text: $data.attribute,
-                                    click: $root._openAttribute"></a>
-                        </li>
-                        <!-- /ko -->
-                        <li>
-                            <label>
-                                <div class="input-append">
+                    <div>
+                        <ul class="nav nav-pills nav-stacked">
+                            <!-- ko foreach: _attributeDocNames() -->
+                            <li data-bind="css: { active: $root._isActiveAttribute($data) }">
+                                <a data-bind="text: $data.attribute,
+                                        click: $root._openAttribute"></a>
+                            </li>
+                            <!-- /ko -->
+                        </ul>
+                        <label>
+                            <div class="input-append">
                                 <input type="text"
                                        data-bind="value: _newAttribute"/>
-                                    <span class="add-on btn"><i class="icon-plus"></i></span>
-                                </div>
-                            </label>
-                        </li>
-                    </ul>
+                                <span class="add-on btn"><i class="icon-plus"></i></span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -260,9 +260,11 @@
 <!-- @@template__app_templates_scripts__context__app_main -->
 <!-- @@remove_ -->
 <script src="/lib/jquery/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/jquery/jquery-ui.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/knockout/knockout-2.2.1.debug.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/underscore/underscore-min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/knockout/knockout.mapping-latest.debug.js" type="text/javascript" charset="utf-8"></script>
+<script src="/lib/knockout/knockout-sortable.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/bootstrap/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/knockout/knockout-bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
 <script src="/lib/async/async.js" type="text/javascript" charset="utf-8"></script>
@@ -685,45 +687,45 @@ function traverse(current, field, property, depth, pos) {
     return 0;
 }
 
+function ensurePath(doc, path, lastIsList, callback) {
+    var ops = [];
+    var sub_doc = doc.snapshot;
+    var current = {};
+    for (var x = 0; x < path.length; x++) {
+        var check = sub_doc[path[x]];
+        if (check) {
+            sub_doc = check;
+            current = check;
+        } else {
+            if (((x + 1) == path.length) && lastIsList) {
+                ops.push({
+                    p: path.slice(0, x + 1),
+                    oi: []
+                });
+                current = [];
+            } else {
+                ops.push({
+                    p: path.slice(0, x + 1),
+                    oi: {}
+                });
+                sub_doc = {};
+                current = null;
+            }
+        }
+    }
+    return callback(null, ops, current);
+}
+
 function user_functions(app, vmName) {
     var cursorPositions = {};
 
     return {
-        ensurePath: function (doc, path, lastIsList, callback) {
-            var ops = [];
-            var sub_doc = doc.snapshot;
-            var current = {};
-            for (var x = 0; x < path.length; x++) {
-                var check = sub_doc[path[x]];
-                if (check) {
-                    sub_doc = check;
-                    current = check;
-                } else {
-                    if (((x + 1) == path.length) && lastIsList) {
-                        ops.push({
-                            p: path.slice(0, x + 1),
-                            oi: []
-                        });
-                        current = [];
-                    } else {
-                        ops.push({
-                            p: path.slice(0, x + 1),
-                            oi: {}
-                        });
-                        sub_doc = {};
-                        current = null;
-                    }
-                }
-            }
-            return callback(null, ops, current);
-        },
-
         storeCurrentPosition: function (name, position) {
             cursorPositions[name] = position;
 
             var user_doc = getDoc(app, 'user');
             var path = ['positions', name];
-            this.ensurePath(user_doc, path, false, function (err, ops, current) {
+            ensurePath(user_doc, path, false, function (err, ops, current) {
                 ops.push({
                     p: path,
                     od: current,
@@ -753,7 +755,7 @@ function user_functions(app, vmName) {
         addActiveAttribute: function (attribute, callback) {
             var path = ['active'];
             var user_doc = getDoc(app, 'user');
-            this.ensurePath(user_doc, path, true, function (err, ops, current) {
+            ensurePath(user_doc, path, true, function (err, ops, current) {
                 if (err) {
                     console.error('addActiveAttribute.ensurePath', err);
                     return callback && callback(err);
@@ -787,7 +789,7 @@ function user_functions(app, vmName) {
         removeActiveAttribute: function (attribute, callback) {
             var path = ['active'];
             var user_doc = getDoc(app, 'user');
-            this.ensurePath(user_doc, path, true, function (err, ops, current) {
+            ensurePath(user_doc, path, true, function (err, ops, current) {
                 if (err) {
                     console.error('removeActiveAttribute.ensurePath', err);
                     return callback && callback(err);
@@ -982,6 +984,20 @@ function initViewModel_projects(app, vmName) {
         })
     });
 
+    viewModel._moveContent = function(project) {
+        return function(arg) {
+            var i, found=false, index = -1;
+            for (i=0; !found && i < viewModel.projects().length; i+=1){
+                if( viewModel.projects()[i].title() === project.title()) {
+                    index = i;
+                    found = true;
+                }
+            }
+            if (found && index >= 0) {
+                callFunction(app,'projects').moveContent(index, arg);
+            }
+        }
+    }
     viewModel._loadAttributes = function (index, loc) {
         return function (data, event) {
             var docId = keyFromLocation(loc);
@@ -1021,6 +1037,24 @@ function initViewModel_projects(app, vmName) {
     };
 
     return viewModel;
+}
+
+function projects_functions(app, vmName) {
+    return {
+        moveContent: function (index, args) {
+            var doc = getDoc(app, 'projects');
+            var path = ['projects',index,'docs',args.sourceIndex];
+            var ops = [];
+            ops.push({
+                p: path,
+                lm: args.targetIndex
+            });
+            app.debug && console.log('moveContent ops', ops);
+            doc.submitOp(ops, function (err) {
+                app.debug && console.log('moved content', err);
+            });
+        }
+    };
 }
 
 function initViewModel_navigation(app, vmName) {
