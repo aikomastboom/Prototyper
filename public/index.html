@@ -188,7 +188,7 @@
             <!--<input type="text" autocomplete="off">-->
         <!--</div>-->
         <div class="accordion" id="accordion"
-             data-bind="sortable: { data:_selectedProject().docs(), afterMove:$root._moveContent(_selectedProject())}">
+             data-bind="sortable: { data:_selectedProject().docs(), afterMove:$root._moveContent}">
             <div class="accordion-group">
                 <a class="nav-pills nav-stacked" data-toggle="collapse"
                    data-parent="#accordion"
@@ -199,13 +199,11 @@
                 <div data-bind="attr: { id: 'collapse' +$index() }"
                      class="accordion-body collapse">
                     <div>
-                        <ul class="nav nav-pills nav-stacked">
-                            <!-- ko foreach: _attributeDocNames() -->
+                        <ul class="nav nav-pills nav-stacked" data-bind="sortable: { data:_attributeDocNames(), afterMove:$root._moveAttribute}">
                             <li data-bind="css: { active: $root._isActiveAttribute($data) }">
                                 <a data-bind="text: $data.attribute,
                                         click: $root._openAttribute"></a>
                             </li>
-                            <!-- /ko -->
                         </ul>
                         <label>
                             <div class="input-append">
@@ -411,12 +409,20 @@ function getAttributeDocNames(snapshot, parentLocation) {
     var pairs = [];
     _.forEach(snapshot._attributes, function (key) {
         pairs.push({
+            index: snapshot[key].index,
             collection: loc.collection,
             name: loc.name,
             attribute: key
         })
     });
-    return pairs;
+    var sortedPairs = _.sortBy(pairs, function (pair) {
+        return pair.index;
+    });
+    var i;
+    for(i=0; i< sortedPairs.length; i+=1){
+       sortedPairs[i].index=i;
+    }
+    return sortedPairs;
 }
 
 // uniquely identifying an attribute
@@ -984,20 +990,21 @@ function initViewModel_projects(app, vmName) {
         })
     });
 
-    viewModel._moveContent = function(project) {
-        return function(arg) {
-            var i, found=false, index = -1;
-            for (i=0; !found && i < viewModel.projects().length; i+=1){
-                if( viewModel.projects()[i].title() === project.title()) {
-                    index = i;
-                    found = true;
-                }
-            }
-            if (found && index >= 0) {
-                callFunction(app,'projects').moveContent(index, arg);
-            }
+    viewModel._moveAttribute = function(args) {
+        app.debug && console.log('moveAttribute', args);
+        var index = _.indexOf(viewModel.projects(),viewModel._selectedProject());
+        if (index >= 0) {
+            callFunction(app,'projects').moveAttribute(index, args);
         }
-    }
+    };
+
+    viewModel._moveContent =  function(arg) {
+        var index = _.indexOf(viewModel.projects(),viewModel._selectedProject());
+        if (index >= 0) {
+            callFunction(app,'projects').moveContent(index, arg);
+        }
+    };
+
     viewModel._loadAttributes = function (index, loc) {
         return function (data, event) {
             var docId = keyFromLocation(loc);
@@ -1039,6 +1046,75 @@ function initViewModel_projects(app, vmName) {
     return viewModel;
 }
 
+function ensureIndexesOnAttributes(snapshot) {
+    var ops = [];
+    if (!snapshot._attributes) {
+        addComputed(snapshot);
+    }
+    var needs_indexing = _.find(snapshot._attributes, function (attributeName) {
+        return (!snapshot[attributeName].hasOwnProperty('index'));
+    });
+    app.debug && console.log('ensureIndexesOnAttributes needs_indexing', needs_indexing);
+    if (needs_indexing) {
+        var maxAttribute = _.max(snapshot._attributes, function (attributeName) {
+            return snapshot[attributeName].index;
+        });
+        var max = maxAttribute && snapshot[maxAttribute].index || 0;
+        _.forEach(snapshot._attributes, function (attributeName,index) {
+            if (!snapshot[attributeName].hasOwnProperty('index')) {
+                max += 1;
+                app.debug && console.log('ensureIndexesOnAttributes correct_index', attributeName, index);
+                var path = [attributeName, 'index'];
+                ops.push({
+                    p: path,
+                    oi: max
+                });
+                snapshot[attributeName].index=max;
+            }
+        });
+    }
+    // defrag
+    var used = [];
+    var dups = [];
+    var max = snapshot._attributes.length;
+    _.forEach(snapshot._attributes, function (attributeName) {
+        var od = snapshot[attributeName].index;
+        var path = [attributeName, 'index'];
+        if (_.find(used, function (dup) {
+            return od == dup.od;
+        })){
+            app.debug && console.log('// duplicate move to end.', attributeName, od, dups);
+            ops.push({
+                p: path,
+                od: od,
+                oi: max
+            });
+            od = max;
+            max += 1;
+        }
+        app.debug && dups.push(od);
+        used.push({p: path, od: od})
+    });
+    var sortedUsed = _.sortBy(used, function (item) {
+        return item.od;
+    });
+    if (app.debug) {
+        var justindex = _.pluck(sortedUsed, 'od');
+        console.log('// sorted indexes',justindex);
+    }
+    _.forEach(sortedUsed, function (item,index) {
+        if (item.od != index) {
+            app.debug && console.log('// hole found', item.od, index);
+            ops.push({
+                p: item.p,
+                od: item.od,
+                oi: index
+            });
+        }
+    });
+    return ops;
+}
+
 function projects_functions(app, vmName) {
     return {
         moveContent: function (index, args) {
@@ -1052,6 +1128,50 @@ function projects_functions(app, vmName) {
             app.debug && console.log('moveContent ops', ops);
             doc.submitOp(ops, function (err) {
                 app.debug && console.log('moved content', err);
+            });
+        },
+
+        moveAttribute: function (index, args) {
+            var docId = getDocId(args.item);
+            var doc = getDoc(app, docId);
+            var snapshot = doc.snapshot;
+            var ops = ensureIndexesOnAttributes(snapshot);
+            if (ops.length < 2) {
+            var min = Math.min(args.sourceIndex,args.targetIndex);
+            var max = Math.max(args.sourceIndex,args.targetIndex);
+            var inc = ((args.sourceIndex > args.targetIndex) ? 1 : -1);
+            _.forEach(snapshot._attributes, function (attributeName,index) {
+                var od = snapshot[attributeName].index;
+                var path = [attributeName, 'index'];
+                if ((od > min && od < max) || (od == args.targetIndex)) {
+                    ops.push({
+                        p: path,
+                        od: od,
+                        oi: od + inc
+                    });
+                }
+                if (od == args.sourceIndex) {
+                    ops.push({
+                        p: path,
+                        od: od,
+                        oi: args.targetIndex
+                    });
+                }
+                if (typeof od != 'number') {
+                    ops.push({
+                        p: path,
+                        od: od,
+                        oi: index
+                    });
+                }
+            });
+            } else {
+                app.debug && console.log('not moving reorganizing', ops);
+                args.cancelDrop=true;
+            }
+            app.debug && console.log('moveAttribute ops', ops);
+            doc.submitOp(ops, function (err) {
+                app.debug && console.log('moved attribute', err);
             });
         }
     };
@@ -1280,6 +1400,7 @@ function handleConfigModule(app, appModule, callback) {
 function moduleIsLoadable(module) {
     return module.hasOwnProperty('collection');
 }
+
 function initializeConfig(app, callback) {
     var config_snapshot = getConfigDocSnapshot(app);
     return app.async.each(_.keys(config_snapshot), function handleConfigModules(module, iterator_callback) {
@@ -1322,7 +1443,6 @@ function loadConfig(app, config_loc, callback) {
         });
     });
 }
-
 
 function bindViewModels(app) {
     var config_snapshot = getConfigDocSnapshot(app);
