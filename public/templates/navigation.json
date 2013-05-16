@@ -123,6 +123,10 @@
 								{
 									"title": "Quick Tip: Telling Knockout to Skip Binding Part of a Page",
 									"url": "http://www.knockmeout.net/2012/05/quick-tip-skip-binding.html"
+								},
+								{
+									"title": "Knockout.js External Template Engine",
+									"url": "https://github.com/ifandelse/Knockout.js-External-Template-Engine"
 								}
 							]
 						},
