@@ -16,15 +16,15 @@
 				},
 				{
 					"title": "Editor",
-					"url": "/page/app/main.index.html",
+					"url": "/editor.html",
 					"icon_class": "icon-pencil"
 				},
 				{
 					"title": "Import",
 					"links": [
 						{
-							"title": "Prototyper",
-							"url": "/importer/index.html",
+							"title": "Editor",
+							"url": "/importer/editor.html",
 							"icon_class": "icon-refresh"
 						},
 						{
@@ -33,7 +33,12 @@
 							"icon_class": "icon-refresh"
 						},
 						{
-							"title": "Preview Test One",
+							"title": "Run Editor",
+							"url": "/page/app/main.index.html",
+							"icon_class": "icon-home"
+						},
+						{
+							"title": "Run Test One",
 							"url": "/page/tests/test1.index.html",
 							"icon_class": "icon-home"
 						}
@@ -242,6 +247,27 @@
 							"title": "Playbooks",
 							"url": "http://operations.local:5000/Operations/playbooks",
 							"icon_class": "icon-folder-open"
+						}
+					]
+				},
+				{
+					"title": "Deployment",
+					"links": [
+						{
+							"title": "Fleet",
+							"url": "https://github.com/substack/fleet"
+						},
+						{
+							"title": "Ansible",
+							"url": "http://ansible.cc/"
+						},
+						{
+							"title": "Rasbian",
+							"url": "http://www.raspbian.org/"
+						},
+						{
+							"title": "ZFS on RaspBerry",
+							"url": "http://raspberry-python.blogspot.nl/2012/10/zfs-file-system-on-raspberry-pi.html"
 						}
 					]
 				}
