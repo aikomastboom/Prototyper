@@ -1,7 +1,6 @@
 "use strict";
 process.title = "Prototyper";
 
-var mime = require('mime');
 var connect = require('connect');
 var express = require('express');
 var MongoClient = require('mongodb').MongoClient;
@@ -14,10 +13,6 @@ var importer = require('./lib/importer.js');
 var handlers = require('./lib/handlers.js');
 var markers = require('./lib/markers.js');
 var helpers = require('./lib/helpers.js');
-
-mime.define({
-	'text/css': ['css', 'less']
-});
 
 var config = {
 	debug: function () {
@@ -77,6 +72,11 @@ if (config.debug) {
 }
 
 var app = express();
+
+express.static.mime.define({
+	'text/css': ['css', 'less']
+});
+
 if (config.debug) {
 	app.use(connect.logger());
 }
