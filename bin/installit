@@ -11,8 +11,8 @@ cd ${base_dir}
 
 unameStr=`uname`
 if [[ "${unameStr}" == 'Linux' ]]; then
-   SED='sed -i_orig '
-   CURL='wget '
+    SED='sed -i_orig '
+    CURL='wget '
 elif [[ "${unameStr}" == 'Darwin' ]]; then
     SED='sed -i _orig'
     CURL='curl -O '

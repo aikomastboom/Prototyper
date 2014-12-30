@@ -185,7 +185,7 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 		if (config.debug) {
 			config.debug('routes', app.routes);
 		}
-		return console.log('Server running at http://127.0.0.1:', config.port);
+		return console.log('Server running at http://127.0.0.1:' + config.port);
 	});
 });
 
