@@ -2,6 +2,7 @@
 var libPath = process.env.PROTOTYPER_COV ? '../lib-cov' : '../lib';
 var chai = require('chai');
 chai.config.includeStack = true; // defaults to false
+chai.config.showDiff = false; // defaults to false
 var expect = chai.expect;
 
 var mongoData = require(libPath + '/mongoData.js');

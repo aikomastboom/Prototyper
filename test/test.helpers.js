@@ -3,7 +3,8 @@ var libpath = process.env.PROTOTYPER_COV ? '../lib-cov' : '../lib';
 var helpers = require(libpath + '/helpers.js');
 var markers = require(libpath + '/markers.js');
 var chai = require('chai');
-chai.Assertion.includeStack = true; // defaults to false
+chai.config.includeStack = true; // defaults to false
+chai.config.showDiff = false; // defaults to false
 var expect = chai.expect;
 var when = require('when');
 
