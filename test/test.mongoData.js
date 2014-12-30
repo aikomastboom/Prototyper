@@ -1,7 +1,7 @@
 "use strict";
 var libPath = process.env.PROTOTYPER_COV ? '../lib-cov' : '../lib';
 var chai = require('chai');
-chai.Assertion.includeStack = true; // defaults to false
+chai.config.includeStack = true; // defaults to false
 var expect = chai.expect;
 
 var mongoData = require(libPath + '/mongoData.js');
