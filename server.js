@@ -3,6 +3,9 @@ process.title = "Prototyper";
 
 var connect = require('connect');
 var express = require('express');
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+var ConnectRoles = require('connect-roles');
 var MongoClient = require('mongodb').MongoClient;
 var addRoutes = require('./lib/routes.js');
 var shareServer = require('./lib/share.js');
@@ -18,8 +21,8 @@ var config = {
 	debug: function () {
 		if (process.env.DEBUG) {
 			var error = arguments[0] && arguments[0].message ||
-				arguments[1] && arguments[1].message ||
-				arguments[2] && arguments[2].message;
+						arguments[1] && arguments[1].message ||
+						arguments[2] && arguments[2].message;
 			var args = Array.prototype.slice.call(arguments);
 			var log = { level: 'debug',  message: args, timestamp: Date.now(), error: error};
 			console.log(JSON.stringify(log));
@@ -98,6 +101,12 @@ var config = {
 		preview: '/page',
 		importer: '/importer'
 	},
+	users: {
+		admin: {
+			password: 'admin',
+			roles: 'admin'
+		}
+	},
 	statics: {
 		dev_favicon_path: __dirname + '/public/favicon_dev.ico',
 		importer_path: __dirname + '/public',
@@ -112,6 +121,7 @@ var config = {
 config.debug && config.debug('config loaded');
 
 var app = express();
+var roles = new ConnectRoles();
 
 express.static.mime.define({
 	'text/css': ['css', 'less']
@@ -126,6 +136,27 @@ if (process.env.DEBUG) {
 }
 //noinspection JSUnresolvedFunction
 app.use(express.compress());
+
+//noinspection JSUnresolvedFunction
+app.use(express.cookieParser());
+//noinspection JSUnresolvedFunction
+app.use(express.bodyParser());
+//noinspection JSUnresolvedFunction
+// app.use(express.session({ secret: 'keyboard cat' }));
+//noinspection JSUnresolvedFunction
+app.use(passport.initialize());
+//noinspection JSUnresolvedFunction
+//app.use(passport.session());
+//noinspection JSUnresolvedFunction
+app.use(roles.middleware());
+
+app.post('/login',
+	passport.authenticate('local', {
+		session: false,
+		successRedirect: '/editor.html',
+		failureRedirect: '/login.html',
+		failureFlash: false })
+);
 
 if (!process.env.NODE_ENV) {
 	app.get('/favicon.ico', function (req, res) {
@@ -155,6 +186,33 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 	}
 	config.debug && config.debug('database connected');
 
+	passport.use(new LocalStrategy(
+		function(username, password, done) {
+			config.error('check user',username, password);
+			if (config.users[username]) {
+				var user = config.users[username];
+				config.error(user);
+				if (user.password === password) {
+					return done(null, user);
+				}
+				return done(null, false, {message: 'Incorrect password.'});
+			} else {
+				User.findOne({username: username}, function (err, user) {
+					if (err) {
+						return done(err);
+					}
+					if (!user) {
+						return done(null, false, {message: 'Incorrect username.'});
+					}
+					if (!user.validPassword(password)) {
+						return done(null, false, {message: 'Incorrect password.'});
+					}
+					return done(null, user);
+				});
+			}
+		}
+	));
+
 	var share = shareServer(config, app, db);
 	var model = share.model;
 	var server = share.server;
@@ -163,7 +221,7 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 
 	var mongoDataInstance = mongoData(config, db, model);
 
-	config.debug && config.debug('mongodata initialized');
+	config.debug && config.debug('mongoData initialized');
 
 	shareHandlers(config, model, mongoDataInstance);
 
