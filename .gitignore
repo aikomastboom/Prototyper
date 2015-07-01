@@ -8,3 +8,5 @@ fleet.json
 *.log
 .fseventsd
 .TemporaryItems
+node_modules/
+doc/

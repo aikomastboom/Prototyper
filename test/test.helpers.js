@@ -1,17 +1,18 @@
+'use strict';
+//noinspection JSUnresolvedVariable
 var libpath = process.env.PROTOTYPER_COV ? '../lib-cov' : '../lib';
 
-var helpers = require(libpath + '/helpers.js');
-var markers = require(libpath + '/markers.js');
-var chai = require('chai');
+var helpers              = require(libpath + '/helpers.js');
+var markers              = require(libpath + '/markers.js');
+var chai                 = require('chai');
 chai.config.includeStack = true; // defaults to false
 chai.config.showDiff = false; // defaults to false
 var expect = chai.expect;
-var when = require('when');
+var when   = require('when');
 
 
 describe('Helpers', function () {
-	"use strict";
-	var config = {
+	var config          = {
 		debug: function () {
 			//console.log(arguments);
 		},
@@ -20,10 +21,10 @@ describe('Helpers', function () {
 		}
 	};
 	var markersInstance = markers(config);
-	var marker_prefix = '<!--\\s*@@';
-	var marker_postfix = '\\s*-->';
-	var helper = helpers({
-		prefix: marker_prefix,
+	var marker_prefix   = '<!--\\s*@@';
+	var marker_postfix  = '\\s*-->';
+	var helper          = helpers({
+		prefix:  marker_prefix,
 		postfix: marker_postfix
 	});
 
@@ -52,7 +53,7 @@ describe('Helpers', function () {
 				};
 			}
 
-			var i, values = [ null, undefined, '', 'hello', {}, []];
+			var i, values = [null, undefined, '', 'hello', {}, []];
 			for (i = 0; i < values.length; i += 1) {
 				it('should ignore non text input ' + values[i], testText(values[i]));
 			}
@@ -62,7 +63,7 @@ describe('Helpers', function () {
 
 			it('should call getReplacement fail on error', function (done) {
 				var marker = '<!-- @@null -->';
-				var text = 'hello' + marker + 'world';
+				var text   = 'hello' + marker + 'world';
 
 				function getReplacement(result, callback) {
 					expect(result).to.be.equal(marker);
@@ -84,7 +85,7 @@ describe('Helpers', function () {
 
 			it('should call getReplacement (once)', function (done) {
 				var marker = '<!-- @@null -->';
-				var text = 'Hello' + marker + 'World' + marker + '!!';
+				var text   = 'Hello' + marker + 'World' + marker + '!!';
 
 				function getReplacement(result, callback) {
 					expect(result).to.be.equal(marker);
@@ -92,7 +93,7 @@ describe('Helpers', function () {
 					callback(null, {});
 				}
 
-				var once = true;
+				var once    = true;
 				var promise = helper.replace(text, null, getReplacement, once);
 				expect(when.isPromise(promise)).to.be.ok;
 				promise.then(
@@ -117,18 +118,19 @@ describe('Helpers', function () {
 
 			it('should call getReplacement', function (done) {
 				var marker = '<!-- @@null -->';
-				var text = 'Hello' + marker + 'World' + marker + '!!';
+				var text   = 'Hello' + marker + 'World' + marker + '!!';
 
 				function getReplacement(result, callback) {
 					expect(result).to.be.equal(marker);
 					expect(callback).to.be.a('function');
 					callback(null, {
 						regExp: new RegExp('What?'),
-						value: '#'});
+						value:  '#'
+					});
 
 				}
 
-				var once = false;
+				var once    = false;
 				var promise = helper.replace(text, null, getReplacement, once);
 				expect(when.isPromise(promise)).to.be.ok;
 				promise.then(
@@ -161,10 +163,10 @@ describe('Helpers', function () {
 
 			it('should handle variable tags', function (done) {
 				var marker_tag = 'test__([A-Za-z0-9]+)';
-				var marker1 = '<!-- @@test__A -->';
-				var marker2 = '<!-- @@test__B -->';
-				var text = 'Hello' + marker1 + 'World' + marker2 + '!!';
-				var called = 0;
+				var marker1    = '<!-- @@test__A -->';
+				var marker2    = '<!-- @@test__B -->';
+				var text       = 'Hello' + marker1 + 'World' + marker2 + '!!';
+				var called     = 0;
 
 				function getReplacement(result, callback) {
 					if (called) {
@@ -176,11 +178,12 @@ describe('Helpers', function () {
 					expect(callback).to.be.a('function');
 					callback(null, {
 						regExp: new RegExp('What?'),
-						value: '#'});
+						value:  '#'
+					});
 
 				}
 
-				var once = false;
+				var once    = false;
 				var promise = helper.replace(text, marker_tag, getReplacement, once);
 				expect(when.isPromise(promise)).to.be.ok;
 				promise.then(
@@ -209,12 +212,12 @@ describe('Helpers', function () {
 
 			it('should handle tags in tags', function (done) {
 				var marker_tag = 'test_([A-Za-z0-9]+)__([\\w\\W]*?)__\\1_test';
-				var marker1 = '<!-- @@test_A__ -->';
-				var marker2 = '<!-- @@__A_test -->';
-				var marker3 = '<!-- @@test_B____B_test -->';
-				var text = 'Hello' + marker1 + 'World' + marker2 + '!!' + marker3 +
+				var marker1    = '<!-- @@test_A__ -->';
+				var marker2    = '<!-- @@__A_test -->';
+				var marker3    = '<!-- @@test_B____B_test -->';
+				var text       = 'Hello' + marker1 + 'World' + marker2 + '!!' + marker3 +
 					'Greetings' + marker1 + 'Earthlings' + marker3 + '!!' + marker2;
-				var called = 0;
+				var called     = 0;
 
 				function getReplacement(result, callback) {
 					//console.log('result',called,result);
@@ -229,11 +232,12 @@ describe('Helpers', function () {
 					expect(callback).to.be.a('function');
 					callback(null, {
 						regExp: new RegExp('What?'),
-						value: '#'});
+						value:  '#'
+					});
 
 				}
 
-				var once = false;
+				var once    = false;
 				var promise = helper.replace(text, marker_tag, getReplacement, once);
 				expect(when.isPromise(promise)).to.be.ok;
 				promise.then(
@@ -278,7 +282,7 @@ describe('Helpers', function () {
 			};
 		}
 
-		var i, values = [ null, undefined, '', 'hello', {}, []];
+		var i, values = [null, undefined, '', 'hello', {}, []];
 		for (i = 0; i < values.length; i += 1) {
 			it('should return input when there are no promisses ' + values[i], testText(values[i]));
 		}

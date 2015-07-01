@@ -1,81 +1,101 @@
-"use strict";
-process.title = "Prototyper";
+'use strict';
+process.title = 'Prototyper';
 
-var connect = require('connect');
-var express = require('express');
-var MongoClient = require('mongodb').MongoClient;
-var addRoutes = require('./lib/routes.js');
-var shareServer = require('./lib/share.js');
+var connect       = require('connect');
+var express       = require('express');
+var MongoClient   = require('mongodb').MongoClient;
+var addRoutes     = require('./lib/routes.js');
+var shareServer   = require('./lib/share.js');
 var shareHandlers = require('./lib/shareHandlers.js');
-var mongoData = require('./lib/mongoData.js');
-var preview = require('./lib/preview.js');
-var importer = require('./lib/importer.js');
-var handlers = require('./lib/handlers.js');
-var markers = require('./lib/markers.js');
-var helpers = require('./lib/helpers.js');
+var mongoData     = require('./lib/mongoData.js');
+var preview       = require('./lib/preview.js');
+var importer      = require('./lib/importer.js');
+var handlers      = require('./lib/handlers.js');
+var markers       = require('./lib/markers.js');
+var helpers       = require('./lib/helpers.js');
 
 var config = {
-	debug: function () {
+	debug:   function () {
 		if (process.env.DEBUG) {
 			var error = arguments[0] && arguments[0].message ||
 				arguments[1] && arguments[1].message ||
 				arguments[2] && arguments[2].message;
-			var args = Array.prototype.slice.call(arguments);
-			var log = { level: 'debug',  message: args, timestamp: Date.now(), error: error};
+			var args  = Array.prototype.slice.call(arguments);
+			var log   = {
+				level:     'debug',
+				message:   args,
+				timestamp: Date.now(),
+				error:     error
+			};
 			console.log(JSON.stringify(log));
 		}
 	},
-	info: function () {
-		var error = arguments[0] && arguments[0].message ||
-					arguments[1] && arguments[1].message ||
-					arguments[2] && arguments[2].message;
-		var args = Array.prototype.slice.call(arguments);
-		var log = { level: 'info', message: args, timestamp: Date.now(), error: error};
-		console.log(JSON.stringify(log));
-	},
-	warn: function () {
-		var error = arguments[0] && arguments[0].message ||
-					arguments[1] && arguments[1].message ||
-					arguments[2] && arguments[2].message;
-		var args = Array.prototype.slice.call(arguments);
-		var log = { level: 'warn', message: args, timestamp: Date.now(), error: error};
-		console.warn(JSON.stringify(log));
-	},
-	error: function () {
+	info:    function () {
 		var error = arguments[0] && arguments[0].message ||
 			arguments[1] && arguments[1].message ||
 			arguments[2] && arguments[2].message;
-		var args = Array.prototype.slice.call(arguments);
-		var log = { level: 'error', message: args, timestamp: Date.now(), error: error};
+		var args  = Array.prototype.slice.call(arguments);
+		var log   = {
+			level:     'info',
+			message:   args,
+			timestamp: Date.now(),
+			error:     error
+		};
+		console.log(JSON.stringify(log));
+	},
+	warn:    function () {
+		var error = arguments[0] && arguments[0].message ||
+			arguments[1] && arguments[1].message ||
+			arguments[2] && arguments[2].message;
+		var args  = Array.prototype.slice.call(arguments);
+		var log   = {
+			level:     'warn',
+			message:   args,
+			timestamp: Date.now(),
+			error:     error
+		};
+		console.warn(JSON.stringify(log));
+	},
+	error:   function () {
+		var error = arguments[0] && arguments[0].message ||
+			arguments[1] && arguments[1].message ||
+			arguments[2] && arguments[2].message;
+		var args  = Array.prototype.slice.call(arguments);
+		var log   = {
+			level:     'error',
+			message:   args,
+			timestamp: Date.now(),
+			error:     error
+		};
 		console.error(JSON.stringify(log));
 	},
-	port: process.env.npm_package_config_port || 8000,
-	mongo: {
-		server: "mongodb://localhost:27017/Prototyper",
-		options: {
-			db: {
+	port:    process.env.npm_package_config_port || 8000,
+	mongo:   {
+		server:    'mongodb://localhost:27017/Prototyper',
+		options:   {
+			db:     {
 				native_parser: true,
-				fsync: true
+				fsync:         true
 			},
 			server: {
-				maxPoolSize: 10,
+				maxPoolSize:    10,
 				auto_reconnect: true
 			}
 		},
 		savedelay: 200
 	},
-	share: {
-		sockjs: {
-			prefix: '',
-			response_limit: 128 * 1024,
-			websocket: true,
-			jsessionid: false,
-			heartbeat_delay: 25000,
+	share:   {
+		sockjs:     {
+			prefix:           '',
+			response_limit:   128 * 1024,
+			websocket:        true,
+			jsessionid:       false,
+			heartbeat_delay:  25000,
 			disconnect_delay: 5000,
-			log: function(severity, line) {
+			log:              function (severity, line) {
 				if (process.env.DEBUG) {
 					if (severity === 'info') {
-						config.info && config.info(severity,line);
+						config.info && config.info(severity, line);
 					} else if (severity === 'error') {
 						config.error && config.error(severity, line);
 					} else {
@@ -83,29 +103,29 @@ var config = {
 					}
 				}
 			},
-			sockjs_url: 'https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js'
+			sockjs_url:       'https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js'
 		},
 		staticpath: '/lib/share',
-		db: {type: 'none'}
+		db:         {type: 'none'}
 //		db: {
 //			type: 'mongo',
 //			opsCollectionPerDoc: false
 //		}
 	},
-	api: {
-		content: '/content',
-		data: '/data',
-		preview: '/page',
+	api:     {
+		content:  '/content',
+		data:     '/data',
+		preview:  '/page',
 		importer: '/importer'
 	},
 	statics: {
 		dev_favicon_path: __dirname + '/public/favicon_dev.ico',
-		importer_path: __dirname + '/public',
-		public_path: __dirname + '/public',
-		doc_path: __dirname + '/doc',
-		markdown_client: __dirname + '/node_modules/markdown/lib',
-		ace_client: __dirname + '/node_modules/share/examples/lib/ace',
-		async_client: __dirname + '/node_modules/async/lib'
+		importer_path:    __dirname + '/public',
+		public_path:      __dirname + '/public',
+		doc_path:         __dirname + '/doc',
+		markdown_client:  __dirname + '/node_modules/markdown/lib',
+		ace_client:       __dirname + '/node_modules/share/examples/lib/ace',
+		async_client:     __dirname + '/node_modules/async/lib'
 	}
 };
 
@@ -119,10 +139,12 @@ express.static.mime.define({
 
 if (process.env.DEBUG) {
 	//app.use(connect.logger());
-	var stream =  { write: function(str) {
-		config.debug && config.debug(str);
-	}};
-	app.use(connect.logger({ immediate: false, format: 'dev', stream: stream }));
+	var stream = {
+		write: function (str) {
+			config.debug && config.debug(str);
+		}
+	};
+	app.use(connect.logger({immediate: false, format: 'dev', stream: stream}));
 }
 //noinspection JSUnresolvedFunction
 app.use(express.compress());
@@ -155,8 +177,8 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 	}
 	config.debug && config.debug('database connected');
 
-	var share = shareServer(config, app, db);
-	var model = share.model;
+	var share  = shareServer(config, app, db);
+	var model  = share.model;
 	var server = share.server;
 
 	config.debug && config.debug('share attached');
@@ -187,13 +209,24 @@ MongoClient.connect(config.mongo.server, config.mongo.options, function connecti
 
 	function exit(code) {
 		db.close();
-		process.exit(code);
+		// Probably there are also some other listeners for uncaughtException,
+		// so we postpone process.exit
+		process.nextTick(function () {
+			process.exit(code);
+		});
 	}
+
+	process.on('uncaughtException', function (err) {
+		config.error && config.error('HALTING ON UNCAUGHT EXCEPTION:' + err.message, err);
+		config.error && config.error(err.stack);
+		config.error && config.error('EXIT 1');
+		return exit(1);
+	});
 
 	server.on('error', function (err) {
 		config.error && config.error('Server error', err);
 		if (err.code && err.code === 'EADDRINUSE') {
-			exit(2);
+			return exit(2);
 		}
 	});
 

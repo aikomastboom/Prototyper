@@ -1,12 +1,13 @@
-"use strict";
-var libPath = process.env.PROTOTYPER_COV ? '../lib-cov' : '../lib';
-var chai = require('chai');
+'use strict';
+//noinspection JSUnresolvedVariable
+var libPath              = process.env.PROTOTYPER_COV ? '../lib-cov' : '../lib';
+var chai                 = require('chai');
 chai.config.includeStack = true; // defaults to false
 chai.config.showDiff = false; // defaults to false
 var expect = chai.expect;
 
 var mongoData = require(libPath + '/mongoData.js');
-var config = {
+var config    = {
 	debug: function () {
 		//console.log(arguments);
 	},
@@ -35,34 +36,41 @@ describe('mongoData', function () {
 			throw new Error('fail:' + JSON.stringify(arguments));
 		}
 
-		var col = {findOne: findOne};
-		var db = { collection: function (c, cb) {
-			//console.log('collection arguments', arguments);
-			if (c === 'test_error') {
-				return cb(new Error(c));
+		var col               = {findOne: findOne};
+		var db                = {
+			collection: function (c, cb) {
+				//console.log('collection arguments', arguments);
+				if (c === 'test_error') {
+					return cb(new Error(c));
+				}
+				return cb(null, col);
 			}
-			return cb(null, col);
-		}};
-		var shareModel = {};
-		var option_list = [
+		};
+		var shareModel        = {};
+		var option_list       = [
 			{}, // no collection
 			{query: 'q'}, // no collection
 			{collection: 'test_error'}, // bad collection
 			{collection: 'col'}, // no query
-			{collection: 'no_hex',
-				query: {_id: 'id'} // not a hexString
+			{
+				collection: 'no_hex',
+				query:      {_id: 'id'} // not a hexString
 			},
-			{collection: 'no_col', // trigger findOne error
-				query: {_id: '123456789012345678901234'}
+			{
+				collection: 'no_col', // trigger findOne error
+				query:      {_id: '123456789012345678901234'}
 			},
-			{collection: 'col', // trigger null result
-				query: {_id: '234567890123456789012345'}
+			{
+				collection: 'col', // trigger null result
+				query:      {_id: '234567890123456789012345'}
 			},
-			{collection: 'col', // trigger '' result
-				query: {_id: '345678901234567890123456'}
+			{
+				collection: 'col', // trigger '' result
+				query:      {_id: '345678901234567890123456'}
 			},
-			{collection: 'ok', // trigger 'ok' result
-				query: {_id: '456789012345678901234567'}
+			{
+				collection: 'ok', // trigger 'ok' result
+				query:      {_id: '456789012345678901234567'}
 			}
 		];
 		var mongoDataInstance = mongoData(config, db, shareModel);
@@ -91,7 +99,9 @@ describe('mongoData', function () {
 		}
 
 		for (i = 0; i < option_list.length; i += 1) {
-			it('should handle arguments correctly', testArguments(option_list[i]));
+			it('should handle arguments correctly ' + JSON.stringify(option_list[i]),
+				testArguments(option_list[i])
+			);
 		}
 	});
 });
