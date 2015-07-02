@@ -11,6 +11,9 @@ var config    = {
 	debug: function () {
 		//console.log(arguments);
 	},
+	info: function () {
+		//console.log(arguments);
+	},
 	error: function () {
 		//console.error(arguments);
 	}
@@ -92,6 +95,117 @@ describe('mongoData', function () {
 						} else {
 							expect(coll, JSON.stringify(options)).to.not.be.ok;
 						}
+						done();
+					}
+				});
+			};
+		}
+
+		for (i = 0; i < option_list.length; i += 1) {
+			it('should handle arguments correctly ' + JSON.stringify(option_list[i]),
+				testArguments(option_list[i])
+			);
+		}
+	});
+
+	describe('getMongoContentAttribute', function () {
+		var ok = {
+			_id: '345678901234567890123456',
+			parent: '456789012345678901234567',
+			name: 'test.content_attribute'
+		};
+		function findOne(q, cb) {
+			if (q._id && q._id.toString() === '123456789012345678901234') {
+				return cb(null, {
+					_id: '123456789012345678901234',
+					name: 'test',
+					error_attribute: {
+						guid: '234567890123456789012345'
+					},
+					content_attribute: {
+						guid: '345678901234567890123456'
+					}
+				});
+			}
+			if (q._id && q._id.toString() === '234567890123456789012345') {
+				return cb(new Error(q));
+			}
+			if (q._id && q._id.toString() === '345678901234567890123456') {
+				return cb(null, ok);
+			}
+			if (q._id && q._id.toString() === '456789012345678901234567') {
+				return cb(null, {
+					_id: '456789012345678901234567',
+					name: 'test'
+				});
+			}
+			if (q.parent && q.parent.toString() === '456789012345678901234567') {
+				if (q.name === 'test.content_attribute'){
+					return cb(null, ok);
+				} else {
+					return cb(new Error(q));
+				}
+			}
+			throw new Error('fail:' + JSON.stringify(arguments));
+		}
+
+		var col               = {findOne: findOne};
+		var db                = {
+			collection: function (c, cb) {
+				//console.log('collection arguments', arguments);
+				if (c === 'test_error') {
+					return cb(new Error(c));
+				}
+				return cb(null, col);
+			}
+		};
+		var shareModel        = {};
+		var option_list       = [
+			{}, // no collection
+			{query: 'q'}, // no collection
+			{collection: 'col'}, // no query
+			{
+				collection: 'no_attr',
+				query:      {_id: '123456789012345678901234'} // no attribute
+			},
+			{
+				collection: 'col', // trigger null result
+				query:      {_id: '123456789012345678901234'},
+				attribute: 'error_attribute'
+			},
+			{
+				collection: 'ok', // trigger 'ok' result
+				query:      {_id: '123456789012345678901234'},
+				attribute: 'content_attribute'
+
+			},
+			{
+				collection: 'col', // trigger error result
+				query:      {_id: '456789012345678901234567'},
+				attribute: 'error_attribute'
+			},
+			{
+				collection: 'ok', // trigger 'ok' result
+				query:      {_id: '456789012345678901234567'},
+				attribute: 'content_attribute'
+			}
+		];
+		var mongoDataInstance = mongoData(config, db, shareModel);
+		var i;
+
+		function testArguments(options) {
+			return function (done) {
+				mongoDataInstance.getMongoAttribute(options, function (err, result, coll) {
+					if (options.collection === 'ok') {
+						//console.log('result',result,'err',err,'coll',coll);
+						expect(result).to.equal(ok);
+						expect(err).to.not.be.ok;
+						expect(coll).to.equal(col);
+						done();
+					} else {
+						//console.log('err',err);
+						expect(err).to.be.instanceOf(Error);
+						expect(result).to.not.be.ok;
 						done();
 					}
 				});
