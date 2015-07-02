@@ -10,25 +10,25 @@ Change the mongo url to your mongodb
     npm start
 
 
-1. Import content defined in index.html into db:
-    [/importer/index.html](http://localhost:8000/importer/index.html)
-1. View the index.html
-    [/index.html](http://localhost:8000/index.html)
+1. Import content defined in editor.html into db:
+    [/importer/editor.html](http://localhost:8000/importer/editor.html)
+1. View the editor.html
+    [/editor.html](http://localhost:8000/editor.html)
 1. Dogfood viewing of index.html from db:
     [/page/app/main.index.html](http://localhost:8000/page/app/main.index.html)
 
 
 # Features:
 
-* Realtime, thru sharejs.
+* Realtime, using ShareJS.
 * Run and develop at the same time.
 * Importing, driven by comment markers.
-* Serverside templating, driven by comment markers.
+* Server-Side templating, driven by comment markers.
 
 
 # Examples:
 
-all functionality is found index.html
+all functionality is found editor.html
 
 
 # Interface:

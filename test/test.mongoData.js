@@ -14,6 +14,9 @@ var config    = {
 	info: function () {
 		//console.log(arguments);
 	},
+	warn: function () {
+		//console.error(arguments);
+	},
 	error: function () {
 		//console.error(arguments);
 	}
