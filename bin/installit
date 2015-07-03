@@ -112,6 +112,9 @@ if [ ! -f ./jquery.min.js ]; then
   ${CURL} http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js
   # http://code.jquery.com/jquery-1.9.1.js
 fi
+if [ ! -f ./jquery.min.map ]; then
+  ${CURL} http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.map
+fi
 if [ ! -f ./jquery-ui.js ]; then
   ${CURL} http://code.jquery.com/ui/1.10.3/jquery-ui.js
 fi
