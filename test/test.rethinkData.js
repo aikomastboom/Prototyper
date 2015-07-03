@@ -71,7 +71,7 @@ describe('rethinkData', function () {
 
 		function testArguments(options) {
 			return function (done) {
-				dataInstance.getMongoContent(options, function (err, result) {
+				dataInstance.getContent(options, function (err, result) {
 					if (result === 'ok') {
 						expect(result).to.equal('ok');
 						expect(err).to.not.be.ok;
@@ -179,12 +179,12 @@ describe('rethinkData', function () {
 				attribute: 'content_attribute'
 			}
 		];
-		var mongoDataInstance = rethinkData(config, db, shareModel);
+		var dataInstance = rethinkData(config, db, shareModel);
 		var i;
 
 		function testArguments(options) {
 			return function (done) {
-				mongoDataInstance.getMongoAttribute(options, function (err, result) {
+				dataInstance.getAttribute(options, function (err, result) {
 					if (options.collection === 'ok') {
 						//console.log('result',result,'err',err,'coll',coll);
 						expect(result).to.equal(ok);

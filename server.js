@@ -236,7 +236,7 @@ rethink.connect(config.rethink.server, function connection_result(err, connectio
 
 		config.debug && config.debug('previews initialized');
 
-		var importerInstance = importer(config, dataInstance, helperInstance, markerInstance);
+		var importerInstance = importer(config, dataInstance, helperInstance, markerInstance, updateShare);
 
 		config.debug && config.debug('importer initialized');
 
