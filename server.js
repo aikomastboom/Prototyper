@@ -3,11 +3,11 @@ process.title = 'Prototyper';
 
 var connect       = require('connect');
 var express       = require('express');
-var MongoClient   = require('mongodb').MongoClient;
+var rethink       = require('rethinkdb');
 var addRoutes     = require('./lib/routes.js');
 var shareServer   = require('./lib/share.js');
 var shareHandlers = require('./lib/shareHandlers.js');
-var mongoData     = require('./lib/mongoData.js');
+var rethinkData   = require('./lib/rethinkData.js');
 var preview       = require('./lib/preview.js');
 var importer      = require('./lib/importer.js');
 var handlers      = require('./lib/handlers.js');
@@ -83,6 +83,13 @@ var config = {
 			}
 		},
 		savedelay: 200
+	},
+	rethink: {
+		server: {
+			host: 'rethinkdb.40n8.me',
+			port: 28015,
+			db:   'Prototyper'
+		}
 	},
 	share:   {
 		sockjs:     {
@@ -170,74 +177,94 @@ config.debug && config.debug('static routes set');
 var markerInstance = markers(config);
 var helperInstance = helpers(markerInstance);
 
-MongoClient.connect(config.mongo.server, config.mongo.options, function connection(err, db) {
+rethink.connect(config.rethink.server, function connection_result(err, connection) {
+
 	if (err) {
 		config.error && config.error('ERR connection to database', err);
 		return process.exit(3);
 	}
-	config.debug && config.debug('database connected');
-
-	var share  = shareServer(config, app, db);
-	var model  = share.model;
-	var server = share.server;
-
-	config.debug && config.debug('share attached');
-
-	var mongoDataInstance = mongoData(config, db, model);
-
-	config.debug && config.debug('mongodata initialized');
-
-	shareHandlers(config, model, mongoDataInstance);
-
-	config.debug && config.debug('shareHandlers attached');
-
-	var previewInstance = preview(config, mongoDataInstance, helperInstance, markerInstance);
-
-	config.debug && config.debug('previews initialized');
-
-	var importerInstance = importer(config, mongoDataInstance, helperInstance, markerInstance);
-
-	config.debug && config.debug('importer initialized');
-
-	var handlerInstance = handlers(mongoDataInstance, previewInstance, importerInstance);
-
-	config.debug && config.debug('handlers initialized');
-
-	app = addRoutes(app, handlerInstance, markers, config);
-
-	config.debug && config.debug('routes added');
 
 	function exit(code) {
-		db.close();
-		// Probably there are also some other listeners for uncaughtException,
-		// so we postpone process.exit
-		process.nextTick(function () {
-			process.exit(code);
+		connection.close(function () {
+			// Probably there are also some other listeners for uncaughtException,
+			// so we postpone process.exit
+			process.nextTick(function () {
+				process.exit(code);
+			});
 		});
 	}
 
-	process.on('uncaughtException', function (err) {
-		config.error && config.error('HALTING ON UNCAUGHT EXCEPTION:' + err.message, err);
-		config.error && config.error(err.stack);
-		config.error && config.error('EXIT 1');
-		return exit(1);
-	});
+	config.debug && config.debug('database connected');
 
-	server.on('error', function (err) {
-		config.error && config.error('Server error', err);
-		if (err.code && err.code === 'EADDRINUSE') {
-			return exit(2);
-		}
-	});
-
-	return server.listen(config.port, function handleServerResult(err) {
+	//Create the database if needed.
+	rethink.dbList().contains(config.rethink.server.db).do(function (containsDb) {
+		return rethink.branch(
+			containsDb,
+			{created: 0},
+			rethink.dbCreate(config.rethink.server.db)
+		);
+	}).run(connection, function (err) {
+		connection.use(config.rethink.server.db);
 		if (err) {
-			console.error('Server error', err);
-			return exit(1);
+			config.error && config.error('ERR creating table in database', err);
+			return exit(4);
 		}
-		config.debug && config.debug('routes', app.routes);
-		return config.info && config.info('Server running at http://127.0.0.1:' + config.port);
+
+		var share  = shareServer(config, app);
+		var model  = share.model;
+		var server = share.server;
+
+		config.debug && config.debug('share attached');
+
+		var dataInstance = rethinkData(config, rethink, connection, model);
+
+		config.debug && config.debug('dataInstance initialized');
+
+		shareHandlers(config, model, dataInstance);
+
+		config.debug && config.debug('shareHandlers attached');
+
+		var previewInstance = preview(config, dataInstance, helperInstance, markerInstance);
+
+		config.debug && config.debug('previews initialized');
+
+		var importerInstance = importer(config, dataInstance, helperInstance, markerInstance);
+
+		config.debug && config.debug('importer initialized');
+
+		var handlerInstance = handlers(dataInstance, previewInstance, importerInstance);
+
+		config.debug && config.debug('handlers initialized');
+
+		app = addRoutes(app, handlerInstance, markerInstance, config);
+
+		config.debug && config.debug('routes added');
+
+
+		process.on('uncaughtException', function (err) {
+			config.error && config.error('HALTING ON UNCAUGHT EXCEPTION:' + err.message, err);
+			config.error && config.error(err.stack);
+			config.error && config.error('EXIT 1');
+			return exit(1);
+		});
+
+		server.on('error', function (err) {
+			config.error && config.error('Server error', err);
+			if (err.code && err.code === 'EADDRINUSE') {
+				return exit(2);
+			}
+		});
+
+		return server.listen(config.port, function handleServerResult(err) {
+			if (err) {
+				console.error('Server error', err);
+				return exit(1);
+			}
+			config.debug && config.debug('routes', app.routes);
+			return config.info && config.info('Server running at http://127.0.0.1:' + config.port);
+		});
 	});
+
 });
 
 
