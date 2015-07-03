@@ -1,21 +1,23 @@
 'use strict';
 process.title = 'Prototyper';
 
-var connect       = require('connect');
-var express       = require('express');
-var rethink       = require('rethinkdb');
-var addRoutes     = require('./lib/routes.js');
-var shareServer   = require('./lib/share.js');
-var shareHandlers = require('./lib/shareHandlers.js');
-var rethinkData   = require('./lib/rethinkData.js');
-var preview       = require('./lib/preview.js');
-var importer      = require('./lib/importer.js');
-var handlers      = require('./lib/handlers.js');
-var markers       = require('./lib/markers.js');
-var helpers       = require('./lib/helpers.js');
+var connect             = require('connect');
+var express             = require('express');
+var rethink             = require('rethinkdb');
+var addRoutes           = require('./lib/routes.js');
+var shareServer         = require('./lib/share.js');
+var shareHandlers       = require('./lib/shareHandlers.js');
+var updateShareDocument = require('./lib/updateShareDocument.js');
+var rethinkData         = require('./lib/rethinkData.js');
+var dataAccessor        = require('./lib/data.js');
+var preview             = require('./lib/preview.js');
+var importer            = require('./lib/importer.js');
+var handlers            = require('./lib/handlers.js');
+var markers             = require('./lib/markers.js');
+var helpers             = require('./lib/helpers.js');
 
 var config = {
-	debug:   function () {
+	debug:    function () {
 		if (process.env.DEBUG) {
 			var error = arguments[0] && arguments[0].message ||
 				arguments[1] && arguments[1].message ||
@@ -30,7 +32,7 @@ var config = {
 			console.log(JSON.stringify(log));
 		}
 	},
-	info:    function () {
+	info:     function () {
 		var error = arguments[0] && arguments[0].message ||
 			arguments[1] && arguments[1].message ||
 			arguments[2] && arguments[2].message;
@@ -43,7 +45,7 @@ var config = {
 		};
 		console.log(JSON.stringify(log));
 	},
-	warn:    function () {
+	warn:     function () {
 		var error = arguments[0] && arguments[0].message ||
 			arguments[1] && arguments[1].message ||
 			arguments[2] && arguments[2].message;
@@ -56,7 +58,7 @@ var config = {
 		};
 		console.warn(JSON.stringify(log));
 	},
-	error:   function () {
+	error:    function () {
 		var error = arguments[0] && arguments[0].message ||
 			arguments[1] && arguments[1].message ||
 			arguments[2] && arguments[2].message;
@@ -69,8 +71,8 @@ var config = {
 		};
 		console.error(JSON.stringify(log));
 	},
-	port:    process.env.npm_package_config_port || 8000,
-	mongo:   {
+	port:     process.env.npm_package_config_port || 8000,
+	mongo:    {
 		server:    'mongodb://localhost:27017/Prototyper',
 		options:   {
 			db:     {
@@ -84,14 +86,14 @@ var config = {
 		},
 		savedelay: 200
 	},
-	rethink: {
+	rethink:  {
 		server: {
 			host: 'rethinkdb.40n8.me',
 			port: 28015,
 			db:   'Prototyper'
 		}
 	},
-	share:   {
+	share:    {
 		sockjs:     {
 			prefix:           '',
 			response_limit:   128 * 1024,
@@ -119,13 +121,13 @@ var config = {
 //			opsCollectionPerDoc: false
 //		}
 	},
-	api:     {
+	api:      {
 		content:  '/content',
 		data:     '/data',
 		preview:  '/page',
 		importer: '/importer'
 	},
-	statics: {
+	statics:  {
 		dev_favicon_path: __dirname + '/public/favicon_dev.ico',
 		importer_path:    __dirname + '/public',
 		public_path:      __dirname + '/public',
@@ -216,7 +218,9 @@ rethink.connect(config.rethink.server, function connection_result(err, connectio
 
 		config.debug && config.debug('share attached');
 
-		var dataInstance = rethinkData(config, rethink, connection, model);
+		var updateShare      = updateShareDocument(config, model);
+		var dataBaseInstance = rethinkData(config, rethink, connection);
+		var dataInstance     = dataAccessor(config, dataBaseInstance, updateShare);
 
 		config.debug && config.debug('dataInstance initialized');
 
