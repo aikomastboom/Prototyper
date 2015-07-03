@@ -93,6 +93,10 @@ var config = {
 			db:   'Prototyper'
 		}
 	},
+	database: {
+		// pk: '_id' // mongo
+		pk: 'id' // rethink
+	},
 	share:    {
 		sockjs:     {
 			prefix:           '',
